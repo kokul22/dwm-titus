@@ -77,7 +77,7 @@ dwm_packages() {
 		printf '%s\n' celluloid mpv sxiv python3 desktop-file-utils
 		;;
 	debian:system-management)
-		printf '%s\n' packagekit packagekit-tools libpackagekit-glib2-18 python3-gi python3-apt accountsservice cups system-config-printer
+		printf '%s\n' packagekit packagekit-tools libpackagekit-glib2-18 gir1.2-packagekitglib-1.0 python3-gi python3-apt accountsservice cups system-config-printer
 		;;
 	debian:required)
 		dwm_packages "$family" build

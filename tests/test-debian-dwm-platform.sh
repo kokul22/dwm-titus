@@ -36,6 +36,7 @@ grep -Fq 'Package manager: sudo apt-get install -y' "$work/installer.out"
 grep -Fxq build-essential < <("$repo/scripts/dwm-packages.sh" debian build)
 grep -Fxq xserver-xorg-core < <("$repo/scripts/dwm-packages.sh" debian x11)
 grep -Fxq packagekit < <("$repo/scripts/dwm-packages.sh" debian system-management)
+grep -Fxq gir1.2-packagekitglib-1.0 < <("$repo/scripts/dwm-packages.sh" debian system-management)
 if "$repo/scripts/dwm-packages.sh" arch build >/dev/null 2>&1; then
 	printf 'Unsupported package map unexpectedly remains enabled.\n' >&2
 	exit 1
