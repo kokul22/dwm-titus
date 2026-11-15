@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Rotate Feh wallpapers every 30 minutes using images under `~/Pictures/`.
 - Replace the Quickshell panel's Chris Titus logo with the Debian logo.
 - Set Debian-family APT systems as the sole platform target, with Debian 13 as
   the package and runtime baseline.

@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+interval=${DWM_WALLPAPER_ROTATE_INTERVAL:-1800}
+check_interval=${DWM_WALLPAPER_ROTATE_CHECK_INTERVAL:-30}
+[[ $interval =~ ^[1-9][0-9]*$ && $interval -le 86400 ]] || exit 2
+[[ $check_interval =~ ^[1-9][0-9]*$ && $check_interval -le 300 ]] || exit 2
+
+display=${DISPLAY:-}
+pictures_dir=${DWM_WALLPAPER_ROTATE_DIR:-${HOME:?HOME is required}/Pictures}
+helper=${DWM_SETTINGS_WALLPAPER_HELPER:-dwm-settings-wallpaper}
+[[ -n $display && -d $pictures_dir ]] || exit 0
+command -v xset >/dev/null 2>&1 || exit 0
+command -v feh >/dev/null 2>&1 || exit 0
+command -v "$helper" >/dev/null 2>&1 || exit 0
+
+while :; do
+	elapsed=0
+	while ((elapsed < interval)); do
+		sleep "$check_interval"
+		((elapsed += check_interval))
+		if ! DISPLAY=$display xset q >/dev/null 2>&1; then
+			exit 0
+		fi
+	done
+	DISPLAY=$display DWM_APPEARANCE_WALLPAPER_DIR=$pictures_dir \
+		"$helper" randomize >/dev/null 2>&1 || true
+done

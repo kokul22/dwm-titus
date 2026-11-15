@@ -721,7 +721,7 @@ inventory_scan_cleanup() {
 }
 
 emit_wallpaper_inventory() {
-	local wallpaper_dir=${DWM_APPEARANCE_WALLPAPER_DIR:-${HOME:?HOME is required}/Pictures/backgrounds}
+	local wallpaper_dir=${DWM_APPEARANCE_WALLPAPER_DIR:-${HOME:?HOME is required}/Pictures}
 	local wallpaper_helper=${DWM_SETTINGS_WALLPAPER_HELPER:-$script_dir/dwm-settings-wallpaper}
 	local path label count=0 scan_failed=false limit_reached=false status_output
 	local line record field2 field3 field4 field5 extra selection_found=false valid_fit=false
@@ -1329,7 +1329,7 @@ watch_inventory() {
 	canonical_appearance_state_dir=$(readlink -m -- "$state_home/dwm-titus/appearance") || return 1
 	canonical_font_state_dir=$(readlink -m -- "$state_home/dwm-titus/appearance/font") || return 1
 	arm_parent_exit_watch
-	wallpaper_dir=${DWM_APPEARANCE_WALLPAPER_DIR:-${HOME:?HOME is required}/Pictures/backgrounds}
+	wallpaper_dir=${DWM_APPEARANCE_WALLPAPER_DIR:-${HOME:?HOME is required}/Pictures}
 	# Add every required state root before optional descendants so a large
 	# wallpaper tree cannot crowd dconf, toolkit, font, icon, or theme state out
 	# of the bounded watch set.

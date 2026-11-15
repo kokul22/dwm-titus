@@ -20,7 +20,7 @@ runtime_base=${XDG_RUNTIME_DIR:-/tmp/dwm-titus-$UID}
 }
 runtime_dir=$runtime_base/dwm-settings-wallpaper
 config_file=${DWM_WALLPAPER_CONFIG_FILE:-$config_home/dwm-titus/wallpaper.conf}
-wallpaper_dir=${DWM_APPEARANCE_WALLPAPER_DIR:-${HOME:?HOME is required}/Pictures/backgrounds}
+wallpaper_dir=${DWM_APPEARANCE_WALLPAPER_DIR:-${HOME:?HOME is required}/Pictures}
 preview_dir=$state_home/dwm-titus/appearance/wallpaper
 preview_current=$preview_dir/preview.current
 preview_owner=$preview_dir/preview.owner
@@ -74,6 +74,7 @@ selection_displays=()
 selection_xauthorities=()
 selection_owner_hash=
 applied_default_paths=()
+wallpaper_avoid_paths=()
 mutation_baseline_paths=()
 mutation_baseline_fit=fill
 mutation_baseline_hash=
@@ -880,7 +881,7 @@ default_monitor_count() {
 choose_default_wallpapers() {
 	local executable candidate decoded monitor_count slot index random_value remaining
 	local deadline=$((SECONDS + max_feh_seconds))
-	local -a candidates=()
+	local -a candidates=() alternatives=()
 	applied_default_paths=()
 	[[ -n ${DISPLAY:-} && -d $wallpaper_dir ]] || return 1
 	executable=$(feh_path) || return 1
@@ -894,6 +895,22 @@ choose_default_wallpapers() {
 		timeout --signal=TERM --kill-after=1 "$max_feh_seconds" \
 			find -L "$wallpaper_dir" -type f -print0 2>/dev/null || true
 	)
+	if ((${#wallpaper_avoid_paths[@]} > 0)); then
+		local path avoid
+		for candidate in "${candidates[@]}"; do
+			avoid=false
+			for path in "${wallpaper_avoid_paths[@]}"; do
+				[[ $candidate == "$path" ]] && {
+					avoid=true
+					break
+				}
+			done
+			[[ $avoid == true ]] || alternatives+=("$candidate")
+		done
+		# When another image is available, do not immediately select the
+		# wallpaper that is already on screen.
+		((${#alternatives[@]} == 0)) || candidates=("${alternatives[@]}")
+	fi
 	# Draw without replacement, decoding only enough usable images for the
 	# monitors. Corrupt files are skipped within one shared time budget.
 	for ((index = ${#candidates[@]}; index > 0 && ${#applied_default_paths[@]} < monitor_count; index--)); do
@@ -2319,12 +2336,17 @@ reset_selection() {
 
 randomize_wallpaper() {
 	local expected_hash current_hash
+	local -a previous_paths=()
 	mutation_ready || die 'wallpaper mutation is unavailable'
 	acquire_lock
 	ensure_preview_dir
 	reconcile_preview_locked false
 	[[ -z $(current_preview_token 2>/dev/null || true) ]] || die 'a wallpaper preview is active'
 	[[ ! -e $preview_current && ! -L $preview_current ]] || die 'wallpaper preview owner state is invalid'
+	if read_session_default; then
+		previous_paths=("${applied_default_paths[@]}")
+	fi
+	wallpaper_avoid_paths=("${previous_paths[@]}")
 	if mutation_recovery_pending && ! recover_mutation_failure; then
 		die 'wallpaper live rollback recovery is pending'
 	fi

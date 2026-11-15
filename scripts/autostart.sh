@@ -532,11 +532,25 @@ if command -v feh >/dev/null 2>&1; then
 		(
 			"$wallpaper_helper" session-apply >/dev/null 2>&1 || {
 				! pgrep -u "$(id -u)" -x feh >/dev/null 2>&1 &&
-					feh --no-fehbg --randomize --bg-fill "$HOME/Pictures/backgrounds" >/dev/null 2>&1
+					feh --no-fehbg --randomize --bg-fill "$HOME/Pictures" >/dev/null 2>&1
 			}
 		) &
 	elif ! pgrep -u "$(id -u)" -x feh >/dev/null 2>&1; then
-		start_once feh feh --no-fehbg --randomize --bg-fill "$HOME/Pictures/backgrounds"
+		start_once feh feh --no-fehbg --randomize --bg-fill "$HOME/Pictures"
+	fi
+fi
+
+# Keep the wallpaper changing during long sessions. The rotator exits when its
+# X11 display disappears and avoids starting a second copy for the same display.
+if [ "${DWM_AUTOSTART_NO_WALLPAPER_ROTATION:-0}" != 1 ]; then
+	wallpaper_rotator=dwm-wallpaper-rotate
+	if ! command -v "$wallpaper_rotator" >/dev/null 2>&1; then
+		case $0 in
+		*/*) wallpaper_rotator=${0%/*}/dwm-wallpaper-rotate ;;
+		esac
+	fi
+	if command -v "$wallpaper_rotator" >/dev/null 2>&1 || [ -x "$wallpaper_rotator" ]; then
+		start_detached_display_command_once "$wallpaper_rotator"
 	fi
 fi
 

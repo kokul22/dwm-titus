@@ -34,7 +34,7 @@ Not read-only despite the name: plain `dwm-settings-wallpaper status` and
 | Helper | Use |
 |---|---|
 | `dwm-settings-theme` | `apply <theme>`, `reset`, `personalize {font,text-size,cursor,icon,gtk,qt} <value>`, `personalize-reset <cap>` |
-| `dwm-settings-wallpaper` | `apply <path> <center\|fill\|max\|scale\|tile>`, `randomize`, `reset`; images in `~/Pictures/backgrounds` |
+| `dwm-settings-wallpaper` | `apply <path> <center\|fill\|max\|scale\|tile>`, `randomize`, `reset`; images in `~/Pictures` |
 | `dwm-settings-font` | `apply <family> <scale>`, `reset` |
 | `dwm-settings-picom` | `start`, `restart`, `reload`, `stop`, `toggle`, `set-opacity`, `set-backend`, `copy-config` (mutations take the `revision` from `status`); JSON output |
 | `dwm-settings-input` | per-device xinput settings; Settings UI is the normal front end |

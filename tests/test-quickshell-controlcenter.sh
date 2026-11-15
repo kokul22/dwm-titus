@@ -240,7 +240,7 @@ printf '%s\n' "$health" | grep -Fqx 'ok	light-locker	light-locker is available'
 printf '%s\n' "$health" | grep -Fqx 'ok	Themes configuration	Readable'
 printf '%s\n' "$health" | grep -Fqx 'ok	Quickshell configuration	Readable'
 
-printf '%s\n' "$legacy_health" | grep -Fqx "$(printf 'ok\tQuickshell\tAvailable')"
+printf '%s\n' "$health" | grep -Fqx "$(printf 'ok\tQuickshell\tAvailable')"
 DWM_TEST_MODE=1 DWM_TEST_QUICKSHELL_VERSION='0.2.1^git20260209.dacfa9d-3.fc44' \
 	"$repo/scripts/dwm-quickshell-version-check"
 DWM_TEST_MODE=1 DWM_TEST_QUICKSHELL_VERSION='0.2.1^git20260209.dacfa9d-3.fc45' \
@@ -428,7 +428,7 @@ grep -Fqx 'dwm-settings-picom restart' "$work/actions.log"
 : >"$work/actions.log"
 run_helper action open-wallpapers >"$work/wallpapers.out"
 grep -Fqx 'action	open-wallpapers' "$work/wallpapers.out"
-grep -Fq "xdg-open $work/home/Pictures/backgrounds" "$work/actions.log"
+grep -Fq "xdg-open $work/home/Pictures" "$work/actions.log"
 
 : >"$work/actions.log"
 run_helper action gtk-settings >"$work/gtk-settings.out"
@@ -463,7 +463,7 @@ if DWM_SETTINGS_WALLPAPER_HELPER=$work/missing-wallpaper-helper \
 	run_helper action reload-wallpaper 2>"$work/reload-wallpaper.err"; then
 	exit 1
 fi
-grep -Fqx "no loadable wallpaper images found in $work/home/Pictures/backgrounds" "$work/reload-wallpaper.err"
+grep -Fqx "no loadable wallpaper images found in $work/home/Pictures" "$work/reload-wallpaper.err"
 
 if run_helper action not-real 2>"$work/action.err"; then
 	exit 1

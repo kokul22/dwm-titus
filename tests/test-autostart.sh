@@ -1064,6 +1064,8 @@ if grep -q 'systemctl --user enable.*SERVICE_NAME' \
 fi
 grep -Fq 'start_detached_display_command_once dwm-status' \
 	"$repo_dir/scripts/autostart.sh"
+grep -Fq 'start_detached_display_command_once "$wallpaper_rotator"' \
+	"$repo_dir/scripts/autostart.sh"
 grep -Fq 'display_process_script' "$repo_dir/scripts/autostart.sh"
 grep -Fq 'display_process_display' "$repo_dir/scripts/autostart.sh"
 grep -Fq 'timeout --signal=TERM --kill-after=2 5' "$repo_dir/scripts/autostart.sh"
@@ -1076,7 +1078,7 @@ grep -Fq 'if [ -n "$xsettings_helper" ]; then' "$repo_dir/scripts/autostart.sh"
 grep -Fq '"$wallpaper_helper" session-apply >/dev/null 2>&1 ||' \
 	"$repo_dir/scripts/autostart.sh"
 # shellcheck disable=SC2016
-grep -Fq 'feh --no-fehbg --randomize --bg-fill "$HOME/Pictures/backgrounds"' \
+grep -Fq 'feh --no-fehbg --randomize --bg-fill "$HOME/Pictures"' \
 	"$repo_dir/scripts/autostart.sh"
 
 printf '%s\n' "Autostart duplicate and missing-optional command guards: PASS"

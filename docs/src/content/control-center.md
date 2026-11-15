@@ -134,10 +134,10 @@ root-owned installed helper.
 |--------|-------------|
 | Restart Picom | Kill and relaunch the compositor |
 | Restart Quickshell | Reload the managed Quickshell shell |
-| Reload Wallpaper | Randomize from `~/Pictures/backgrounds/` |
+| Reload Wallpaper | Randomize from `~/Pictures/` |
 | Restart NetworkManager | `sudo systemctl restart NetworkManager` |
 | Check Dependencies | Opens `check-deps.sh` in an interactive tiled terminal to verify and repair packages |
-| Wallpaper Folder | Open `~/Pictures/backgrounds/` in the file manager |
+| Wallpaper Folder | Open `~/Pictures/` in the file manager |
 | GTK Settings | Launch `nwg-look` for GTK theming |
 
 ### Appearance
@@ -145,8 +145,8 @@ root-owned installed helper.
 | Action | Description |
 |--------|-------------|
 | Select Theme | Pick from all themes defined in `themes.toml` |
-| Randomize Wallpaper | Random image from `~/Pictures/backgrounds/` |
-| Open Wallpaper Folder | Open folder in file manager |
+| Randomize Wallpaper | Random image from `~/Pictures/` |
+| Open Wallpaper Folder | Open `~/Pictures/` in the file manager |
 | GTK Theme Settings | Launch `nwg-look` for GTK theming |
 
 ### Power Settings

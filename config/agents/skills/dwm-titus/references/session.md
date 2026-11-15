@@ -24,7 +24,8 @@
 ## Wallpaper and picom
 
 - Wallpaper: `dwm-settings-wallpaper apply <path> fill`, `randomize`, or
-  `reset`. Pool directory: `~/Pictures/backgrounds`.
+  `reset`. Pool directory: `~/Pictures`. The wallpaper rotates every 30
+  minutes while an X11 session remains active.
 - Picom config resolution: `$DWM_PICOM_CONFIG`, the running picom's
   `--config`, `~/.config/picom.conf`, `~/.config/picom/picom.conf`, then
   `/etc/xdg`. With no file, picom runs on defaults. To seed a user copy, read

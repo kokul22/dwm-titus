@@ -130,14 +130,17 @@ Open the Control Center with <kbd>Super</kbd> + <kbd>F1</kbd>, navigate to **App
 ---
 ## Wallpapers
 
-Place images in `~/Pictures/backgrounds/`. Open **Settings → Appearance** to
-select an image, choose its fit, preview it for 30 seconds, apply it, or reset
-to the random session default. Use `Super` + `Shift` + `W` or
-`dwm-settings-wallpaper randomize` for a one-off random wallpaper in the
-current session, or persist a specific image and fit from a terminal:
+Place images anywhere under `~/Pictures/`. DWM-Titus chooses a random image at
+login and rotates to another image every 30 minutes while the X11 session is
+active. Feh's fill mode scales and crops each image to fit the monitor. Open
+**Settings → Appearance** to select a persistent image from the same folder,
+preview it for 30 seconds, apply it, or reset to the random session default.
+Use `Super` + `Shift` + `W` or `dwm-settings-wallpaper randomize` to choose a
+one-off image from `~/Pictures/`, or persist a specific image and fit from a
+terminal:
 
 ```bash
-dwm-settings-wallpaper apply "$HOME/Pictures/backgrounds/mywall.jpg" fill
+dwm-settings-wallpaper apply "$HOME/Pictures/mywall.jpg" fill
 ```
 
 Supported fit modes are `center`, `fill`, `max`, `scale`, and `tile`. Preview a
@@ -146,7 +149,7 @@ choice for 30 seconds before keeping it:
 ```bash
 token="wallpaper-$$"
 dwm-settings-wallpaper preview "$token" 30 \
-  "$HOME/Pictures/backgrounds/mywall.jpg" max
+  "$HOME/Pictures/mywall.jpg" max
 dwm-settings-wallpaper keep "$token"
 ```
 

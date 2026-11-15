@@ -1613,7 +1613,7 @@ restart_quickshell() {
 }
 
 reload_wallpaper() {
-	wallpaper_dir=${HOME:-}/Pictures/backgrounds
+	wallpaper_dir=${HOME:-}/Pictures
 	wallpaper_helper=${DWM_SETTINGS_WALLPAPER_HELPER:-}
 	if [ -z "$wallpaper_helper" ]; then
 		wallpaper_helper=dwm-settings-wallpaper
@@ -1624,7 +1624,7 @@ reload_wallpaper() {
 		fi
 	fi
 	if command -v "$wallpaper_helper" >/dev/null 2>&1 || [ -x "$wallpaper_helper" ]; then
-		if "$wallpaper_helper" randomize >/dev/null; then
+		if DWM_APPEARANCE_WALLPAPER_DIR=$wallpaper_dir "$wallpaper_helper" randomize >/dev/null; then
 			notify "Wallpaper reloaded"
 			return 0
 		fi
@@ -1783,7 +1783,7 @@ self_heal() {
 
 open_wallpapers() {
 	if command -v xdg-open >/dev/null 2>&1; then
-		launch_background xdg-open "${HOME:-}/Pictures/backgrounds"
+		launch_background xdg-open "${HOME:-}/Pictures"
 	else
 		printf 'xdg-open is unavailable\n' >&2
 		return 1

@@ -114,7 +114,7 @@ Flickable {
         if (selection.state === "unavailable"
                 || selection.detail === "Wallpaper candidate discovery did not complete")
             return selection.detail;
-        let detail = "No supported images were found in ~/Pictures/backgrounds.";
+        let detail = "No supported images were found in ~/Pictures.";
         if (selection.state !== "available") detail += " " + selection.detail + ".";
         if (root.appearanceModel.inventoryWatchState === "available")
             return detail + " Add an AVIF, BMP, GIF, JPEG, PNG, SVG, or WebP image and this list will update while Appearance is open.";
