@@ -7816,10 +7816,10 @@ class PackageKitBackend:
             raise ValueError
         path = unit_path[0]
 
-        def property_value(name: str) -> object:
+        def property_value(name: str, interface: str = "org.freedesktop.systemd1.Unit") -> object:
             result = self.connection.call_sync(
                 SYSTEMD_NAME, path, PROPERTIES_INTERFACE, "Get",
-                self.GLib.Variant("(ss)", ("org.freedesktop.systemd1.Unit", name)), None,
+                self.GLib.Variant("(ss)", (interface, name)), None,
                 self.Gio.DBusCallFlags.NONE, self._timeout_ms(deadline), None).unpack()
             if len(result) != 1:
                 raise ValueError
@@ -7835,7 +7835,7 @@ class PackageKitBackend:
         dropins = property_value("DropInPaths")
         if not isinstance(dropins, (tuple, list)) or dropins:
             raise ValueError
-        main_pid = property_value("MainPID")
+        main_pid = property_value("MainPID", "org.freedesktop.systemd1.Service")
         if type(main_pid) is not int or main_pid != pid:
             raise ValueError
         service = self.connection.call_sync(

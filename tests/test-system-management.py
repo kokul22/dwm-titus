@@ -9727,6 +9727,8 @@ class PackageKitSafetyTests(unittest.TestCase):
         backend = exercise()
         backend._require_systemd_package_identity(123, time.monotonic() + 10)
         self.assertEqual(backend.connection.call_sync.call_count, 6)
+        self.assertEqual(backend.connection.call_sync.call_args_list[4].args[4],
+                         ("org.freedesktop.systemd1.Service", "MainPID"))
 
         for invalid in (exercise(main_pid=124), exercise(dropins=("/etc/systemd/system/packagekit.service.d/override.conf",)),
                         exercise(executable="/tmp/packagekitd")):
