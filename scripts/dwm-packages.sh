@@ -25,6 +25,86 @@ dwm_packages() {
 		# package, virtual capability, alternative executable commands
 		printf '%s\n' $'power-profiles-daemon\tppd-service\t-' $'xorg-x11-server-Xorg\txserver\tXorg,Xlibre'
 		;;
+	debian13:provider-policy)
+		printf '%s\n' $'xserver-xorg-core\txserver\tXorg'
+		;;
+	debian13:build)
+		printf '%s\n' build-essential pkg-config libx11-dev libxft-dev libxinerama-dev \
+			libxrender-dev libimlib2-dev libxcb1-dev libxcb-res0-dev libfontconfig1-dev libfreetype-dev
+		;;
+	debian13:ci-smoke)
+		dwm_packages "$family" build
+		printf '%s\n' quickshell python3 dbus-daemon util-linux procps \
+			xvfb xdotool x11-utils x11-xserver-utils xsettingsd jq inotify-tools \
+			fonts-noto-core setxkbmap xkb-data xinput x11-utils
+		;;
+	debian13:x11)
+		printf '%s\n' xserver-xorg-core xinit x11-xserver-utils x11-xkb-utils xinput xkbset
+		;;
+	debian13:runtime-required)
+		printf '%s\n' dbus-x11 curl git procps psmisc unzip util-linux xclip xdotool \
+			x11-utils xdg-utils gnome-keyring libpam-gnome-keyring
+		;;
+	debian13:keyring)
+		printf '%s\n' gnome-keyring libpam-gnome-keyring
+		;;
+	debian13:desktop)
+		# DWM session services and the managed Quickshell shell. Quickshell is
+		# published in Debian 13 backports; users need that suite enabled.
+		printf '%s\n' quickshell thunar picom python3 feh dex mate-polkit xsettingsd \
+			bubblewrap libseccomp2 alsa-utils brightnessctl dbus-bin inotify-tools jq \
+			pulseaudio-utils pipewire pipewire-pulse wireplumber libnotify-bin \
+			light-locker xserver-xorg-input-libinput bluez blueman playerctl upower \
+			flatpak xdg-desktop-portal-gtk network-manager-gnome
+		;;
+	debian13:source-update)
+		printf '%s\n' xsettingsd xkbset bubblewrap libseccomp2
+		dwm_packages "$family" keyring
+		;;
+	debian13:theme)
+		printf '%s\n' dconf-gsettings-backend adwaita-icon-theme papirus-icon-theme
+		;;
+	debian13:theme-gtk)
+		printf '%s\n' arc-theme yaru-theme-gtk yaru-theme-icon
+		;;
+	debian13:theme-optional)
+		printf '%s\n' qt6ct qt5ct
+		;;
+	debian13:fonts)
+		printf '%s\n' fonts-noto-color-emoji fonts-noto-mono
+		;;
+	debian13:lightdm)
+		printf '%s\n' lightdm slick-greeter
+		;;
+	debian13:terminal)
+		printf '%s\n' alacritty kitty
+		;;
+	debian13:terminal-primary)
+		printf '%s\n' alacritty
+		;;
+	debian13:screenshot-optional)
+		printf '%s\n' maim
+		;;
+	debian13:required)
+		dwm_packages "$family" build
+		dwm_packages "$family" x11
+		dwm_packages "$family" runtime-required
+		;;
+	debian13:recommended)
+		dwm_packages "$family" desktop
+		dwm_packages "$family" screenshot-optional
+		dwm_packages "$family" theme
+		dwm_packages "$family" theme-gtk
+		dwm_packages "$family" fonts
+		;;
+	debian13:optional)
+		dwm_packages "$family" theme-optional
+		;;
+	debian13:full)
+		dwm_packages "$family" required
+		dwm_packages "$family" recommended
+		dwm_packages "$family" optional
+		;;
 	fedora:build)
 		printf '%s\n' \
 			gcc make pkgconf-pkg-config libX11-devel libXft-devel \
@@ -222,9 +302,12 @@ dwm_package_provider_installed() {
 		for command in "${alternatives[@]}"; do
 			[[ $command == - ]] || { command -v "$command" >/dev/null 2>&1 && return 0; }
 		done
-		command -v rpm >/dev/null 2>&1 && rpm -q --whatprovides "$capability" >/dev/null 2>&1
+		case "$DISTRO_FAMILY" in
+		fedora) command -v rpm >/dev/null 2>&1 && rpm -q --whatprovides "$capability" >/dev/null 2>&1 ;;
+		debian13) package_installed "$candidate" ;;
+		esac
 		return $?
-	done < <(dwm_packages fedora provider-policy)
+	done < <(dwm_packages "$DISTRO_FAMILY" provider-policy)
 	return 1
 }
 

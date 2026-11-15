@@ -2,8 +2,8 @@
 
 The first card in **Settings > System** checks the dwm-titus desktop against
 official `main`. It covers the managed Quickshell configuration, dwm, installed
-commands, managed data, and cursor assets. Fedora package updates below it
-continue to manage the Quickshell application and other RPM packages.
+commands, managed data, and cursor assets. The Fedora package provider below
+it manages Quickshell and other RPM packages on Fedora.
 
 ![Desktop updates at the top of System Settings](evidence/desktop-updates.png)
 
@@ -98,6 +98,23 @@ through the existing
 
 ## Installation and compatibility
 
+The DWM build and managed desktop source updater also recognize Debian 13
+(`ID=debian`, `VERSION_ID=13`). The updater's privileged dependency step uses
+the installed package map and APT. During a desktop update, it installs only
+the mapped build and source-update packages after the same explicit
+authorization as system-file changes. The manual dependency-repair action uses
+the mapped DWM desktop profiles. Fedora continues to use DNF. The Debian
+package map uses Debian names such as `libx11-dev`, `libxft-dev`,
+`libxinerama-dev`, and `libimlib2-dev` for
+the DWM build. Quickshell is packaged in Debian 13 backports
+([Debian package details](https://packages.debian.org/trixie-backports/x11/quickshell)),
+so that repository must already be enabled for a missing Quickshell dependency
+to be installable. This does not enable the Fedora installer, image builder,
+gaming setup, or general system-management package profiles on Debian. In the
+panel Update Center, the desktop, Flatpak, and Mise providers remain available;
+the operating-system package row remains the Fedora DNF provider and is
+unavailable on Debian.
+
 Existing desktops must run the existing
 [source update procedure](src/content/install.md#source-updates-and-recovery)
 once to install the updater and its root-owned authorization helper. Fresh
@@ -148,8 +165,9 @@ Unsafe installed file modes or modified user-owned system files require the
 source installer; recovery never restores special or writable mode bits.
 The confirmed update can install missing build/source-update packages from the
 new release's package map, including changed dependency lists. The helper accepts
-only RPM names, binds the list to the reserved operation, and checks that the
-staged manifest matches it. The package manager owns its transaction and locks;
+only validated package names, binds the list to the reserved operation, and
+checks that the staged manifest matches it. The system package manager owns its
+transaction and locks;
 desktop rollback does not remove installed packages.
 
 ### Upgrading an older updater
@@ -228,7 +246,8 @@ restores the managed user directories from the recorded copies. It refuses to
 replace a newer installation or user files changed after the interruption.
 Save conflicting changes separately before recovery; do not reset or delete a
 checkout to bypass that protection. Log out and back in after restoration, then
-check again. Recovery does not undo RPM transactions or downgrade packages.
+check again. Recovery does not undo package-manager transactions or downgrade
+packages.
 
 If the installed updater itself is unavailable, use the existing full
 [source recovery procedure](src/content/install.md#source-updates-and-recovery).
@@ -290,7 +309,8 @@ configuration variables, disable hooks, templates, filesystem monitors, and
 credential helpers, and allow only local-file and HTTPS transports. Use the
 forwarded proxy and certificate environment settings for network customization.
 
-Desktop builds require Fedora's `bubblewrap` and `libseccomp` packages. The
+Desktop builds require `bubblewrap` and `libseccomp` (Debian package
+`libseccomp2`). The
 source installer and source-sync dependency profile install them. Mutable
 checkout, source scripts, staged Git merges, and builds run in private user,
 process, mount, and network namespaces with no capabilities, host session bus,

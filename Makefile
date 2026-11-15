@@ -240,7 +240,10 @@ install-system-files:
 		--destdir "${DESTDIR}" --prefix "${PREFIX}" --manprefix "${MANPREFIX}" \
 		--xsessions "${XSESSIONSDIR}" --datadir "${DATADIR}" \
 		--commands ${INSTALL_COMMAND_NAMES} --helpers $(notdir ${PRIVILEGED_HELPERS}) \
-		--packages $$("${DESTDIR}${PREFIX}/bin/dwm-packages.sh" fedora build) $$("${DESTDIR}${PREFIX}/bin/dwm-packages.sh" fedora source-update)
+		--packages $$(family=$$(/usr/bin/bash -c 'unset DWM_TEST_MODE DWM_OS_RELEASE; . ./scripts/dwm-utils.sh; printf "%s" "$$DISTRO_FAMILY"'); \
+			"${DESTDIR}${PREFIX}/bin/dwm-packages.sh" "$$family" build) \
+			$$(family=$$(/usr/bin/bash -c 'unset DWM_TEST_MODE DWM_OS_RELEASE; . ./scripts/dwm-utils.sh; printf "%s" "$$DISTRO_FAMILY"'); \
+			"${DESTDIR}${PREFIX}/bin/dwm-packages.sh" "$$family" source-update)
 
 install-app-themes:
 	@echo "==> Installing application themes..."
@@ -704,6 +707,9 @@ check-fedora-iso-builder:
 check-fedora-platform:
 	@$(call run_managed_test,tests/test-fedora-platform.sh)
 
+check-debian-dwm-platform:
+	@$(call run_managed_test,bash tests/test-debian-dwm-platform.sh)
+
 check-fedora-packages:
 	tests/test-package-provider-policy.sh
 	tests/test-fedora-packages.sh
@@ -836,6 +842,7 @@ check: check-picom check-picom-xvfb
 	$(MAKE) check-format
 	$(MAKE) check-build-config
 	$(MAKE) check-fedora-platform
+	$(MAKE) check-debian-dwm-platform
 	$(MAKE) check-dev-sync-install
 	$(MAKE) check-default-apps
 	$(MAKE) check-xdg-autostart
@@ -914,7 +921,7 @@ check: check-picom check-picom-xvfb
 	check-test-runner \
 	check-test-runner-podman \
 	check-update-center-settings \
-	check-display-profile check-display-setup check-fedora-iso-builder check-fedora-packages check-fedora-platform check-format check-install \
+	check-display-profile check-display-setup check-fedora-iso-builder check-fedora-packages check-fedora-platform check-debian-dwm-platform check-format check-install \
 	check-gearlever-install check-herdr-install check-install-manifest check-install-preservation check-kickstart check-lock \
 	check-timesync check-session-guards check-session-migration check-screenshot check-release-helper check-shell check-webapp-launch check-diagnostics check-status check-system-health check-system-management check-quickshell-system-management check-settings \
 	check-quickshell-launcher check-quickshell-controls check-quickshell-audio check-quickshell-controlcenter check-quickshell-power check-quickshell-power-backend check-quickshell-power-model check-quickshell-session-actions check-quickshell-defaults-model check-quickshell-agent-settings check-quickshell-appearance-model check-quickshell-design-system check-quickshell-large-surfaces check-quickshell-large-surfaces-xvfb check-quickshell-panel-menus check-quickshell-panel-settings check-quickshell-command-menu check-quickshell-notifications check-quickshell-tray check-quickshell-health-xvfb check-quickshell-settings-xvfb check-quickshell-settings-responsiveness-xvfb check-quickshell-network check-quickshell-connectivity check-quickshell-qml check-lightdm-config check-terminal check-xvfb-runtime check-keyboard-layout install install-system install-user \

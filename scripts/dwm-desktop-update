@@ -49,6 +49,17 @@ def git_arguments(args):
             "-c", "maintenance.auto=false", *args[1:]]
 
 
+def package_family():
+    release = Path("/etc/os-release").read_text()
+    identity = re.search(r'^ID=["\']?([^"\'\n]+)', release, re.M)
+    version = re.search(r'^VERSION_ID=["\']?([^"\'\n]+)', release, re.M)
+    if identity and identity.group(1) == "fedora":
+        return "fedora"
+    if identity and identity.group(1) == "debian" and version and version.group(1) == "13":
+        return "debian13"
+    raise RuntimeError("Desktop updates support Fedora and Debian 13 only")
+
+
 def run(args, cwd=None, timeout=60, capture=True, pass_fds=()):
     environment = {**os.environ, "GIT_TERMINAL_PROMPT": "0", "LC_ALL": "C"}
     if str(args[0]) == "git":
@@ -721,9 +732,20 @@ def drift(manifest, user, check_ownership=True):
 
 
 def missing_packages(packages):
-    return [package for package in packages if subprocess.run(
-        ["rpm", "-q", "--quiet", "--", package], stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL, timeout=10).returncode != 0]
+    family = package_family()
+    missing = []
+    for package in packages:
+        if family == "fedora":
+            installed = subprocess.run(["rpm", "-q", "--quiet", "--", package],
+                                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                       timeout=10).returncode == 0
+        else:
+            result = subprocess.run(["dpkg-query", "-W", "-f=${db:Status-Status}", "--", package],
+                                    capture_output=True, text=True, timeout=10)
+            installed = result.returncode == 0 and result.stdout.strip() == "installed"
+        if not installed:
+            missing.append(package)
+    return missing
 
 
 def check(force=False):
@@ -751,8 +773,7 @@ def check_bounded(force=False):
         try:
             validate_update_paths()
             validate_user_trees()
-            if not re.search(r'^ID=["\']?fedora["\']?$', Path("/etc/os-release").read_text(), re.M):
-                raise RuntimeError("Desktop updates support Fedora only")
+            package_family()
             manifest_path, manifest = installation()
             user = read_json(state / "installed.json") if (state / "installed.json").exists() else {}
             if not isinstance(user, dict) or (user and not user_receipt_valid(user)):
@@ -903,8 +924,9 @@ def install_dependencies():
                     repair_args = ["keep-terminal"]
             except (OSError, subprocess.TimeoutExpired):
                 pass
-            print("Install missing desktop dependencies. Review and confirm DNF's package transaction.", flush=True)
-            # The privileged helper bounds each map/RPM/DNF operation. Wait for
+            package_manager = "DNF" if package_family() == "fedora" else "APT"
+            print(f"Install missing desktop dependencies. Review and confirm {package_manager}'s package transaction.", flush=True)
+            # The privileged helper bounds each map/package-manager operation. Wait for
             # its final exit, including both transactions, so this lock cannot
             # be released while a timed-out pkexec leaves package work behind.
             run([*authorization, helper, "repair-dependencies", digest(manifest_path), *repair_args], timeout=None, capture=False)
@@ -1150,7 +1172,7 @@ def worker(operation):
                     raise RuntimeError("Downloaded revision differs from the confirmed update")
                 required = []
                 for profile in ("build", "source-update"):
-                    required.extend(sandbox_run([source / "scripts/dwm-packages.sh", "fedora", profile], readonly=(source,), cwd=source).splitlines())
+                    required.extend(sandbox_run([source / "scripts/dwm-packages.sh", package_family(), profile], readonly=(source,), cwd=source).splitlines())
                 if sorted(set(required)) != installed["packages"]:
                     required = sorted(set(required))
                     save_status(state, value, state="dependencies", percent=-1,

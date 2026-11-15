@@ -143,6 +143,29 @@ class SnapshotProtocolTests(unittest.TestCase):
             release.write_text('ID="fedora"\nVERSION_ID=44\n')
             self.api["require_fedora"](release)
 
+    def test_desktop_identity_accepts_only_fedora_or_debian_13(self):
+        with tempfile.TemporaryDirectory() as directory:
+            release = Path(directory) / "os-release"
+            release.write_text('ID=debian\nVERSION_ID="13"\n')
+            self.api["require_desktop_platform"](release)
+            release.write_text('ID=debian\nVERSION_ID="12"\n')
+            with self.assertRaisesRegex(ValueError, "Fedora or Debian 13"):
+                self.api["require_desktop_platform"](release)
+
+    def test_fedora_package_provider_explains_unsupported_platform(self):
+        from unittest.mock import patch
+        with patch.dict(self.api["scan_fedora"].__globals__,
+                        require_fedora=lambda: (_ for _ in ()).throw(ValueError("Debian 13"))):
+            with self.assertRaisesRegex(self.api["ScanFailure"], "available only on Fedora"):
+                self.api["scan_fedora"]()
+
+    def test_desktop_identity_rejects_ubuntu_even_with_debian_id_like(self):
+        with tempfile.TemporaryDirectory() as directory:
+            release = Path(directory) / "os-release"
+            release.write_text('ID=ubuntu\nVERSION_ID="13"\nID_LIKE=debian\n')
+            with self.assertRaisesRegex(ValueError, "Fedora or Debian 13"):
+                self.api["require_desktop_platform"](release)
+
     def test_plan_action_and_input_order_preserved_deterministically(self):
         a = "update\ta;3;x86_64;repo\tsecurity\tinstallable\ta\t3\tSummary\n"
         plan = "package-change\ta;3;x86_64;repo\tinstall\ta\t3\tSummary\n"
@@ -390,7 +413,7 @@ class CacheTests(unittest.TestCase):
         output = io.StringIO()
         globals_ = self.api["main"].__globals__
         with patch.dict(os.environ, {"XDG_CACHE_HOME": "relative-cache-must-not-exist"}), \
-                patch.dict(globals_, {"require_fedora": lambda: None, "scan_fedora": lambda: self.good}), \
+                patch.dict(globals_, {"require_fedora": lambda *_args: None, "scan_fedora": lambda: self.good}), \
                 contextlib.redirect_stdout(output):
             self.assertEqual(self.api["main"](["snapshot", "--force"]), 0)
         self.assertIn("provider\tfedora\tFedora\tavailable\t1", output.getvalue())

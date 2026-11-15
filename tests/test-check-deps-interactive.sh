@@ -7,6 +7,12 @@ CHECK_DEPS="$REPO_DIR/scripts/check-deps.sh"
 work=$(mktemp -d "${TMPDIR:-/tmp}/test-check-deps.XXXXXX")
 trap 'rm -rf -- "$work"' EXIT
 
+cat >"$work/fedora-os-release" <<'EOF'
+ID=fedora
+VERSION_ID=45
+EOF
+export DWM_TEST_MODE=1 DWM_OS_RELEASE="$work/fedora-os-release"
+
 mkdir -p "$work/bin" "$work/home" "$work/checker"
 # Keep source-tree siblings and the invoking user's installed helpers out of fixtures.
 cp "$CHECK_DEPS" "$REPO_DIR/scripts/dwm-utils.sh" "$REPO_DIR/scripts/dwm-packages.sh" "$work/checker/"

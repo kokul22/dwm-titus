@@ -427,6 +427,31 @@ def require_fedora(path=Path("/etc/os-release")):
         raise ValueError("Fedora identity is required") from error
 
 
+def require_desktop_platform(path=Path("/etc/os-release")):
+    try:
+        require_fedora(path)
+        return
+    except ValueError:
+        pass
+    try:
+        with open(path, "rb") as stream:
+            data = stream.read(65537)
+        if len(data) > 65536:
+            raise ValueError()
+        values = {}
+        for line in data.decode("utf-8").splitlines():
+            if not line or line.startswith("#"):
+                continue
+            match = re.fullmatch(r'([A-Z_]+)=(?:"([^"\\]*)"|\x27([^\x27\\]*)\x27|([A-Za-z0-9._ /-]*))', line)
+            if not match or match[1] in values:
+                raise ValueError()
+            values[match[1]] = next(value for value in match.groups()[1:] if value is not None)
+        if values.get("ID") != "debian" or values.get("VERSION_ID") != "13":
+            raise ValueError()
+    except (OSError, UnicodeError, ValueError) as error:
+        raise ValueError("Fedora or Debian 13 identity is required") from error
+
+
 def bounded_lines(payload):
     if not isinstance(payload, str) or len(payload.encode("utf-8")) > MAX_BYTES or "\0" in payload:
         raise ValueError("snapshot byte limit exceeded")
@@ -967,7 +992,10 @@ def fedora_package_count():
 
 
 def scan_fedora():
-    require_fedora()
+    try:
+        require_fedora()
+    except ValueError as error:
+        raise ScanFailure("unsupported", "The Fedora package provider is available only on Fedora") from error
     helper = Path(__file__).resolve().with_name("dwm-system-management")
     result = parse_fedora_snapshot(run_bounded([str(helper), "snapshot-updates"], timeout=180))
     count = fedora_package_count()
@@ -1387,7 +1415,7 @@ def main(argv=None):
               "terminal-closed OPERATION_ID | recover PROVIDER | watch-connectivity | watch-operation", file=sys.stderr)
         return 2
     try:
-        require_fedora()
+        require_desktop_platform()
         if args == ["watch-connectivity"]:
             watch_connectivity()
             return 0

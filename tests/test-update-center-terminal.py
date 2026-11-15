@@ -209,7 +209,7 @@ class ReservationTests(Environment):
         class Child:
             pid = 789
         globals_ = self.api["main"].__globals__
-        with patch.dict(globals_, require_fedora=lambda: None,
+        with patch.dict(globals_, require_fedora=lambda *_args: None,
                         validate_provider_action=lambda provider, action: None,
                         subprocess_popen=lambda argv, **options: Child(), process_identity=lambda pid: "789:2"), \
                 patch("sys.stdout", new_callable=io.StringIO) as output:
@@ -931,7 +931,7 @@ class RunnerTests(Environment):
                         self.api["CENTER"]["reserve_operation"]("mise", "update", now=11)
                     output = io.StringIO()
                     center_main = self.api["CENTER"]["main"]
-                    with patch.dict(center_main.__globals__, require_fedora=lambda: None), \
+                    with patch.dict(center_main.__globals__, require_fedora=lambda *_args: None), \
                             patch("sys.stdout", output):
                         self.assertEqual(center_main(["active"]), 0)
                     self.assertIn("\t" + phase + "\t" + outcome, output.getvalue())

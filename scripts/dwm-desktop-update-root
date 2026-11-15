@@ -30,6 +30,17 @@ class SessionExpired(RuntimeError):
     pass
 
 
+def package_family():
+    release = Path("/etc/os-release").read_text()
+    identity = re.search(r'^ID=["\']?([^"\'\n]+)', release, re.M)
+    version = re.search(r'^VERSION_ID=["\']?([^"\'\n]+)', release, re.M)
+    if identity and identity.group(1) == "fedora":
+        return "fedora"
+    if identity and identity.group(1) == "debian" and version and version.group(1) == "13":
+        return "debian13"
+    fail("Desktop package updates support Fedora and Debian 13 only")
+
+
 def fail(message):
     raise RuntimeError(message)
 
@@ -197,7 +208,8 @@ def supported_terminal_installed(uid=None):
 
 def installed_provider_packages(mapping):
     """Read provider policy from the trusted shared map, never duplicate names."""
-    result = subprocess.run(["/usr/bin/bash", str(mapping), "fedora", "provider-policy"],
+    family = package_family()
+    result = subprocess.run(["/usr/bin/bash", str(mapping), family, "provider-policy"],
                             check=True, capture_output=True, text=True, stdin=subprocess.DEVNULL,
                             env={"PATH": "/usr/bin:/bin", "HOME": "/root", "LANG": "C.UTF-8"},
                             cwd="/", timeout=10)
@@ -210,10 +222,16 @@ def installed_provider_packages(mapping):
         alternatives = [] if commands == "-" else commands.split(",")
         if any(not re.fullmatch(r"[A-Za-z0-9+_.-]+", command) for command in alternatives):
             fail("Invalid provider command in installed package map")
+        package_query = (["/usr/bin/rpm", "-q", "--whatprovides", capability] if family == "fedora"
+                         else ["/usr/bin/dpkg-query", "-W", "-f=${db:Status-Status}", package])
+        provider_result = subprocess.run(package_query,
+                                         stdout=subprocess.PIPE if family == "debian13" else subprocess.DEVNULL,
+                                         text=family == "debian13", stderr=subprocess.DEVNULL,
+                                         stdin=subprocess.DEVNULL, timeout=10)
+        provider_installed = (provider_result.returncode == 0 and
+                              (family == "fedora" or provider_result.stdout.strip() == "installed"))
         if (any(shutil.which(command, path="/usr/local/bin:/usr/bin:/bin") for command in alternatives)
-                or subprocess.run(["/usr/bin/rpm", "-q", "--whatprovides", capability],
-                                  stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                                  stdin=subprocess.DEVNULL, timeout=10).returncode == 0):
+                or provider_installed):
             installed.add(package)
     return installed
 
@@ -227,18 +245,41 @@ def validate_packages(packages):
 
 def install_packages(packages, interactive=False, skip_unavailable=False):
     validate_packages(packages)
-    missing = [package for package in packages if subprocess.run(
-        ["/usr/bin/rpm", "-q", "--quiet", "--", package], stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL, stdin=subprocess.DEVNULL, timeout=10).returncode != 0]
+    family = package_family()
+
+    def installed(package):
+        if family == "fedora":
+            return subprocess.run(["/usr/bin/rpm", "-q", "--quiet", "--", package],
+                                  stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                  stdin=subprocess.DEVNULL, timeout=10).returncode == 0
+        result = subprocess.run(["/usr/bin/dpkg-query", "-W", "-f=${db:Status-Status}", "--", package],
+                                capture_output=True, text=True, stdin=subprocess.DEVNULL,
+                                timeout=10)
+        return result.returncode == 0 and result.stdout.strip() == "installed"
+    missing = [package for package in packages if not installed(package)]
+    if family == "debian13" and skip_unavailable:
+        available = []
+        for package in missing:
+            result = subprocess.run(["/usr/bin/apt-cache", "show", package], capture_output=True,
+                                    text=True, stdin=subprocess.DEVNULL, timeout=30)
+            if (result.returncode == 0 and
+                    re.search(r"^Package: " + re.escape(package) + r"$", result.stdout, re.M)):
+                available.append(package)
+        missing = available
     if missing:
         label = "optional" if skip_unavailable else "required"
         print(f"Installing {label} desktop packages: " + ", ".join(missing), flush=True)
-        flags = []
-        if not interactive:
-            flags.append("-y")
-        if skip_unavailable:
-            flags.append("--skip-unavailable")
-        subprocess.run(["/usr/bin/dnf", "install", *flags, "--", *missing], check=True,
+        if family == "fedora":
+            flags = []
+            if not interactive:
+                flags.append("-y")
+            if skip_unavailable:
+                flags.append("--skip-unavailable")
+            command = ["/usr/bin/dnf", "install", *flags, "--", *missing]
+        else:
+            flags = [] if interactive else ["-y"]
+            command = ["/usr/bin/apt-get", "install", *flags, "--", *missing]
+        subprocess.run(command, check=True,
                        env={"PATH": "/usr/bin:/bin", "HOME": "/root", "LANG": "C.UTF-8"},
                        stdin=None if interactive else subprocess.DEVNULL, cwd="/", timeout=1800)
     elif interactive and not skip_unavailable:
@@ -426,8 +467,7 @@ def main():
     trusted(Path(__file__).absolute())
     if not os.access(__file__, os.X_OK):
         fail("Installed helper is not executable")
-    if not re.search(r'^ID=["\']?fedora["\']?$', Path("/etc/os-release").read_text(), re.M):
-        fail("Desktop updates support Fedora only")
+    package_family()
     if uid == 0:
         fail("A desktop user must request this operation")
     args = sys.argv[1:]
@@ -555,12 +595,14 @@ def perform(args, uid):
                 if fingerprint(mapping) != manifest["files"].get(str(mapping)):
                     fail("Installed package map changed; update or restore the managed helper first")
                 provider_packages = installed_provider_packages(mapping)
-                required_profiles = ["required", "source-update", "desktop", "system-management", "theme", "fonts"]
+                required_profiles = ["required", "source-update", "desktop", "theme", "fonts"]
+                if package_family() == "fedora":
+                    required_profiles.append("system-management")
                 if "keep-terminal" not in args[2:] and not supported_terminal_installed(uid):
                     required_profiles.append("terminal-primary")
                 required_packages = []
                 for profile in required_profiles:
-                    result = subprocess.run(["/usr/bin/bash", str(mapping), "fedora", profile],
+                    result = subprocess.run(["/usr/bin/bash", str(mapping), package_family(), profile],
                                             check=True, capture_output=True, text=True, stdin=subprocess.DEVNULL,
                                             env={"PATH": "/usr/bin:/bin", "HOME": "/root", "LANG": "C.UTF-8"},
                                             cwd="/", timeout=10)
@@ -570,7 +612,7 @@ def perform(args, uid):
                 optional_profiles = ["screenshot-optional", "theme-gtk"]
                 optional_packages = []
                 for profile in optional_profiles:
-                    result = subprocess.run(["/usr/bin/bash", str(mapping), "fedora", profile],
+                    result = subprocess.run(["/usr/bin/bash", str(mapping), package_family(), profile],
                                             check=True, capture_output=True, text=True, stdin=subprocess.DEVNULL,
                                             env={"PATH": "/usr/bin:/bin", "HOME": "/root", "LANG": "C.UTF-8"},
                                             cwd="/", timeout=10)

@@ -24,6 +24,8 @@ fi
 
 if [[ $DISTRO_ID == "fedora" ]]; then
 	DISTRO_FAMILY="fedora"
+elif [[ $DISTRO_ID == "debian" ]] && [[ ${VERSION_ID:-} == "13" ]]; then
+	DISTRO_FAMILY="debian13"
 fi
 
 case "$DISTRO_FAMILY" in
@@ -32,6 +34,14 @@ fedora)
 		DWM_PACKAGE_COMMAND=(dnf install -y)
 	else
 		DWM_PACKAGE_COMMAND=(sudo dnf install -y)
+	fi
+	PKG_CMD="${DWM_PACKAGE_COMMAND[*]}"
+	;;
+debian13)
+	if ((EUID == 0)); then
+		DWM_PACKAGE_COMMAND=(apt-get install -y)
+	else
+		DWM_PACKAGE_COMMAND=(sudo apt-get install -y)
 	fi
 	PKG_CMD="${DWM_PACKAGE_COMMAND[*]}"
 	;;
@@ -46,10 +56,21 @@ install_packages() {
 	fedora)
 		"${DWM_PACKAGE_COMMAND[@]}" "$@"
 		;;
+	debian13)
+		"${DWM_PACKAGE_COMMAND[@]}" -- "$@"
+		;;
 	*)
-		printf 'Unsupported distribution: %s (Fedora is required)\n' "$DISTRO_NAME" >&2
+		printf 'Unsupported distribution: %s (Fedora or Debian 13 DWM components only)\n' "$DISTRO_NAME" >&2
 		return 1
 		;;
+	esac
+}
+
+package_installed() {
+	case "$DISTRO_FAMILY" in
+	fedora) rpm -q --quiet -- "$1" ;;
+	debian13) dpkg-query -W -f='${db:Status-Status}' -- "$1" 2>/dev/null | command grep -qx installed ;;
+	*) return 1 ;;
 	esac
 }
 
@@ -69,6 +90,9 @@ package_available() {
 				command grep -Fxq "$1"
 			;;
 		esac
+		;;
+	debian13)
+		apt-cache show "$1" 2>/dev/null | command grep -Fxq "Package: $1"
 		;;
 	*)
 		return 1

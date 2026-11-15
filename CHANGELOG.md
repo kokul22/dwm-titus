@@ -6,6 +6,13 @@ versions from `config.mk`.
 
 ## [Unreleased]
 
+### Added
+
+- Add Debian 13 package mappings for the DWM build and managed desktop
+  runtime. The desktop updater uses APT for authorized dependency installation;
+  the general installer and Fedora system-package Update Center provider remain
+  Fedora-only.
+
 ### Fixed
 
 - Show the correct panel icon for running applications whose window class is
