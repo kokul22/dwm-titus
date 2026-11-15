@@ -9,7 +9,7 @@ The installer supports Debian-family distributions that use APT. Debian 13 is
 the package and runtime baseline. Xorg and an X11 session are required.
 
 ```sh
-git clone https://github.com/ChrisTitusTech/dwm-titus.git
+git clone https://github.com/kokul22/dwm-titus.git
 cd dwm-titus
 ./install.sh --dry-run --non-interactive --profile recommended
 ./install.sh --profile recommended

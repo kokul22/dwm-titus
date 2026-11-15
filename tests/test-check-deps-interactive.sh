@@ -57,7 +57,8 @@ done
 # Mock dpkg-query
 cat >"$work/bin/dpkg-query" <<'SH'
 #!/bin/sh
-exit 0
+[ "$1" = -W ] || exit 1
+printf 'installed\n'
 SH
 chmod +x "$work/bin/dpkg-query"
 

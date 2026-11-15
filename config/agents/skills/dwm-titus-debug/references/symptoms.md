@@ -34,10 +34,10 @@ LightDM session on Debian; confirm them on the target system.
 | Monitor layout wrong after login | `xrandr --listmonitors`, `dwm-display-setup status`, `/etc/X11/xorg.conf.d/90-dwm-titus-display.conf` | Stale Xorg fragment; `dwm-display-setup rollback` restores (root) |
 | Process crashed | `coredumpctl info <pid>`, journal around the timestamp, `free -h` and OOM kills | `/usr/local/bin/dwm` is a local build, so Debian debuginfod has no symbols for it; other Debian packages resolve through `DEBUGINFOD_URLS` |
 
-## Reporting upstream
+## Reporting project issues
 
-Bugs in dwm-titus itself go to https://github.com/ChrisTitusTech/dwm-titus/issues
+Bugs in this Debian fork go to https://github.com/kokul22/dwm-titus/issues
 with `dwm-diagnostics` output, the relevant log lines, the Debian version, and
 whether the install is a git checkout (`git -C <checkout> rev-parse HEAD`). A
-screenshot or the exact error text helps. Read that repository's
+screenshot or the exact error text helps. Read the repository's
 `CONTRIBUTING.md` before opening a pull request.

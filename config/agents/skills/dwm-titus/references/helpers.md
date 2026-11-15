@@ -27,7 +27,7 @@ dwm-desktop-update data-directories
 
 Not read-only despite the name: plain `dwm-settings-wallpaper status` and
 `dwm-settings-theme preview-status` can reconcile or revert previews.
-`dwm-desktop-update check` contacts upstream and writes state.
+`dwm-desktop-update check` contacts the project repository and writes state.
 
 ## Settings (user-level, no root)
 

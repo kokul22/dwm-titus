@@ -378,7 +378,8 @@ class DesktopUpdate(unittest.TestCase):
                 self.assertTrue(value["canUpdate"])
                 self.assertTrue(any(str(target) in path for path in value["changes"]))
 
-    def test_upstream_revision_and_missing_binary(self):
+    def test_project_revision_and_missing_binary(self):
+        self.assertEqual(update.SOURCE, "https://github.com/kokul22/dwm-titus.git")
         self.command.return_value = "b" * 40 + "\trefs/heads/main"
         self.binary.unlink()
         value = update.check(True)
@@ -1100,6 +1101,8 @@ class DesktopUpdate(unittest.TestCase):
         self.assertEqual((target / "file").read_text(), "official")
 
     def test_local_checkout_state_does_not_block_installation_update(self):
+        self.manifest["source"] = next(iter(update.LEGACY_SOURCES))
+
         def git(path, *args):
             return subprocess.check_output(["git", "-C", path, "-c", "user.name=Desktop Test",
                                             "-c", "user.email=desktop-test@example.invalid", *args],
@@ -1243,6 +1246,28 @@ class DesktopUpdate(unittest.TestCase):
             os.chown(self.manifest_path, 65534, 65534)
         with self.assertRaisesRegex(RuntimeError, "root-owned"):
             update.trusted_installation(self.manifest_path)
+
+    def test_legacy_upstream_install_manifest_remains_migratable(self):
+        prefix = self.base / "legacy-prefix"
+        manifest_path = prefix / "share/dwm-titus/desktop-install.json"
+        manifest_path.parent.mkdir(parents=True)
+        manifest = {**self.manifest, "source": next(iter(update.LEGACY_SOURCES)),
+                    "layout": {"prefix": str(prefix)}}
+        update.write_json(manifest_path, manifest)
+        with patch.object(update, "trusted_file") as trusted:
+            update.trusted_installation(manifest_path)
+        trusted.assert_any_call(manifest_path)
+        trusted.assert_any_call(prefix / "libexec/dwm-titus/dwm-desktop-update-root", executable=True)
+
+    def test_unrelated_repository_manifest_remains_rejected(self):
+        prefix = self.base / "foreign-prefix"
+        manifest_path = prefix / "share/dwm-titus/desktop-install.json"
+        manifest_path.parent.mkdir(parents=True)
+        manifest = {**self.manifest, "source": "https://example.invalid/desktop.git",
+                    "layout": {"prefix": str(prefix)}}
+        update.write_json(manifest_path, manifest)
+        with patch.object(update, "trusted_file"), self.assertRaisesRegex(RuntimeError, "identity"):
+            update.trusted_installation(manifest_path)
 
     def test_archive_contains_only_numbered_regular_files(self):
         stage = self.base / "stage"

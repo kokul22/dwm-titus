@@ -1065,8 +1065,8 @@ class RunnerTests(Environment):
         )
 
         # Transition to new step emits newline first
-        formatter.update("Fetching Upstream.....", percent=-1)
-        self.assertIn("Creating backup.\n\r\033[KFetching Upstream.", output.getvalue())
+        formatter.update("Fetching project revision.....", percent=-1)
+        self.assertIn("Creating backup.\n\r\033[KFetching project revision.", output.getvalue())
 
         # Percentage step formats in-place with green badge
         formatter.update("Building", percent=20)

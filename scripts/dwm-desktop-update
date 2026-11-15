@@ -23,7 +23,8 @@ import tempfile
 import time
 import uuid
 
-SOURCE = "https://github.com/ChrisTitusTech/dwm-titus.git"
+SOURCE = "https://github.com/kokul22/dwm-titus.git"
+LEGACY_SOURCES = {"https://github.com/ChrisTitusTech/dwm-titus.git"}
 UNIT = "dwm-desktop-update.service"
 ACTIVE = {"starting", "downloading", "dependencies", "building", "backing-up", "installing", "verifying", "activating", "recovering"}
 CHECK_SECONDS = 60
@@ -376,7 +377,8 @@ def trusted_installation(manifest_path):
     trusted_file(manifest_path)
     manifest = read_json(manifest_path)
     prefix = Path(manifest["layout"]["prefix"])
-    if manifest_path != prefix / "share/dwm-titus/desktop-install.json" or manifest["source"] != SOURCE:
+    if (manifest_path != prefix / "share/dwm-titus/desktop-install.json"
+            or manifest["source"] not in {SOURCE, *LEGACY_SOURCES}):
         raise RuntimeError("Desktop installation identity does not match its trusted manifest")
     trusted_file(prefix / "libexec/dwm-titus/dwm-desktop-update-root", executable=True)
 
@@ -763,7 +765,7 @@ def check_bounded(force=False):
         if not force and 0 <= time.time() - value["checkedAt"] < 300:
             return value
         value.pop("statusInvalid", None)
-        save_status(state, value, state="checking", detail="Checking desktop files and upstream main...", canUpdate=False, percent=-1)
+        save_status(state, value, state="checking", detail="Checking desktop files and project main...", canUpdate=False, percent=-1)
         try:
             validate_update_paths()
             validate_user_trees()
@@ -787,11 +789,11 @@ def check_bounded(force=False):
             reason = unsupported_system_drift(manifest)
             if reason:
                 return save_status(state, value, state="blocked", canUpdate=False, checkedAt=int(time.time()), detail=reason)
-            upstream = run(["git", "ls-remote", "--exit-code", SOURCE, "refs/heads/main"], timeout=30).split()
-            if len(upstream) != 2 or not re.fullmatch(r"[0-9a-f]{40}", upstream[0]):
-                raise RuntimeError("Upstream returned an invalid desktop revision")
-            value["available"] = upstream[0]
-            available = upstream[0] != value["installed"]
+            remote = run(["git", "ls-remote", "--exit-code", SOURCE, "refs/heads/main"], timeout=30).split()
+            if len(remote) != 2 or not re.fullmatch(r"[0-9a-f]{40}", remote[0]):
+                raise RuntimeError("Project repository returned an invalid desktop revision")
+            value["available"] = remote[0]
+            available = remote[0] != value["installed"]
             repair = bool(value["changes"] or value["packages"])
             if not available and not repair and value["restart"] == "session":
                 if running_dwm_matches(Path(manifest["layout"]["prefix"]) / "bin/dwm") is not True:
@@ -1158,9 +1160,9 @@ def worker(operation):
                 reservation_started = True
                 authorize(state, value, privileged, "begin", preview["generation"], operation)
                 reservation_confirmed = True
-                save_status(state, value, state="downloading", detail="Fetching Upstream.....", percent=-1)
+                save_status(state, value, state="downloading", detail="Fetching project revision.....", percent=-1)
                 run(["git", "init", source])
-                run(["git", "-C", source, "fetch", installed.get("source", SOURCE), preview["available"]], timeout=180, capture=False)
+                run(["git", "-C", source, "fetch", SOURCE, preview["available"]], timeout=180, capture=False)
                 sandbox_run(["git", "-C", source, "checkout", "--detach", "FETCH_HEAD"], writable=(source,), cwd=source, capture=False)
                 if source_revision(source) != preview["available"]:
                     raise RuntimeError("Downloaded revision differs from the confirmed update")

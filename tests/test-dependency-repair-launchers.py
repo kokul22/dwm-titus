@@ -40,11 +40,14 @@ class DependencyLaunchers(unittest.TestCase):
             tools = base / "bin"
             tools.mkdir()
             for cmd in ("cc", "make", "Xorg", "startx", "xrandr", "xset", "xsetroot", "xkbset",
-                        "quickshell", "picom", "feh", "xsettingsd", "bwrap", "xclip", "xdotool", "maim", "dpkg-query",
+                        "quickshell", "picom", "feh", "xsettingsd", "bwrap", "xclip", "xdotool", "maim",
                         "dex", "amixer", "jq", "bluetoothctl", "blueman-applet", "alacritty", "xdg-open"):
                 p = tools / cmd
                 p.write_text("#!/bin/sh\nexit 0\n")
                 p.chmod(0o755)
+            dpkg_query = tools / "dpkg-query"
+            dpkg_query.write_text("#!/bin/sh\n[ \"$1\" = -W ] || exit 1\nprintf 'installed\\n'\n")
+            dpkg_query.chmod(0o755)
             # The dispatcher fixture must not depend on the desktop user's fonts.
             fonts = tools / "fc-list"
             fonts.write_text("#!/bin/sh\nprintf '%s\\n' 'MesloLGS Nerd Font' 'Noto Color Emoji'\n")

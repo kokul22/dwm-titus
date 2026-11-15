@@ -5,9 +5,9 @@ description: Customize the dwm-titus X11 desktop, including TOML keybindings, th
 
 # dwm-titus
 
-dwm-titus is Chris Titus Tech's Debian/X11 desktop: patched dwm plus a managed
-Quickshell panel and `dwm-*` helpers. Upstream:
-https://github.com/ChrisTitusTech/dwm-titus. Route failures ("X is broken",
+dwm-titus is a Debian/X11 desktop based on Chris Titus Tech's project: patched
+dwm plus a managed Quickshell panel and `dwm-*` helpers. Project repository:
+https://github.com/kokul22/dwm-titus. Route failures ("X is broken",
 "why did Y stop") to `$dwm-titus-debug`.
 
 ## Workflow

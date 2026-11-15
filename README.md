@@ -23,7 +23,7 @@ On Debian 13 or a compatible Debian-derived distribution, clone the repository
 and review the package plan first:
 
 ```sh
-git clone https://github.com/ChrisTitusTech/dwm-titus.git
+git clone https://github.com/kokul22/dwm-titus.git
 cd dwm-titus
 ./install.sh --dry-run --non-interactive --profile recommended
 ./install.sh --profile recommended
