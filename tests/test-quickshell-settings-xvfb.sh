@@ -336,7 +336,7 @@ python3 "$repo/tests/fixtures/delay-notification-policy.py" \
 	"$config_home/quickshell/notifications/NotificationModel.qml"
 cp "$repo/tests/fixtures/system-operation-provider.py" "$data_home/dwm-titus/scripts/dwm-system-management"
 chmod +x "$data_home/dwm-titus/scripts/dwm-system-management"
-cp "$repo/config/quickshell/assets/ctt_logo.png" "$home/Pictures/backgrounds/test-wallpaper.png"
+cp "$repo/config/quickshell/assets/debian-logo.png" "$home/Pictures/backgrounds/test-wallpaper.png"
 # Keep this nested-X11 fixture independent from the host system UPower service
 # so versioned helper battery records exercise the fallback parser.
 sed -i 's/readonly property var nativeBattery: UPower.displayDevice/readonly property var nativeBattery: null/' \
@@ -2590,7 +2590,7 @@ if [ "$wallpaper_state" != partial ] ||
 		"$wallpaper_state" "$wallpaper_mutation_detail" "$wallpaper_reset_ready" >&2
 	exit 1
 fi
-cp "$repo/config/quickshell/assets/ctt_logo.png" "$test_wallpaper"
+cp "$repo/config/quickshell/assets/debian-logo.png" "$test_wallpaper"
 
 # Preview and recovery metadata are watched while Appearance is open. An
 # external keep or abandon must clear active and failed controls without

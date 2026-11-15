@@ -573,7 +573,13 @@ class DesktopStatusFormatter:
 def execute_desktop(operation, action, *, output=None):
     destination = sys.stdout if output is None else output
     helper = trusted_desktop_helper()
-    status = desktop_value(run_command([helper, "status"], stream=False))
+    # Everything through start/check is preflight. A rejection here proves no
+    # update worker was started, so retain a failed result instead of marking
+    # the Update Center operation interrupted and requiring recovery.
+    try:
+        status = desktop_value(run_command([helper, "status"], stream=False))
+    except (OSError, ValueError, subprocess.SubprocessError) as error:
+        return result("failed", "failed", "Desktop update preflight failed: " + str(error))
     if action == "recover":
         if status["state"] == "interrupted":
             desktop_operation = status.get("operation")
@@ -590,10 +596,14 @@ def execute_desktop(operation, action, *, output=None):
             checkpoint(operation, "recovering", "Reattaching to the trusted desktop update", output=destination)
             terminal = status
     else:
-        checked = desktop_value(run_command([helper, "check"], stream=False))
-        revision = checked.get("available")
-        if not isinstance(revision, str) or not re.fullmatch(r"[0-9a-f]{40}", revision):
-            raise ValueError("verified desktop revision unavailable")
+        try:
+            checked = desktop_value(run_command([helper, "check"], stream=False))
+            revision = checked.get("available")
+            if not isinstance(revision, str) or not re.fullmatch(r"[0-9a-f]{40}", revision):
+                raise ValueError("verified desktop revision unavailable")
+        except (OSError, ValueError, subprocess.SubprocessError) as error:
+            return result("failed", "failed", "Desktop update preview expired or failed: " + str(error)
+                          + ". Refresh the Update Center and try again.")
         checkpoint(operation, "desktop-starting", "Starting the trusted desktop update", output=destination)
         terminal = desktop_value(run_command([helper, "start", revision], stream=False))
     reconciled = desktop_value(run_command([helper, "status"], stream=False)) if action == "update" else terminal

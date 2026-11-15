@@ -17,7 +17,7 @@ PanelPill {
         anchors.centerIn: parent
         width: Theme.scaledSize(24)
         height: Theme.scaledSize(25.2)
-        source: Qt.resolvedUrl("../assets/ctt_logo.png")
+        source: Qt.resolvedUrl("../assets/debian-logo.png")
         fillMode: Image.PreserveAspectFit
         asynchronous: true
         smooth: true
@@ -27,7 +27,7 @@ PanelPill {
     UiText {
         anchors.centerIn: parent
         visible: logoImage.status === Image.Error
-        text: "CTT"
+        text: "Deb"
         color: Theme.accent
         font.pixelSize: Theme.tinyFontSize
         font.bold: true

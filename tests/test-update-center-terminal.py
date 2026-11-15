@@ -310,6 +310,21 @@ class RunnerTests(Environment):
             result = self.api["execute_provider"](self.operation, provider, action)
         return result, calls, phases
 
+    def test_desktop_preview_rejection_is_reported_as_failed_not_interrupted(self):
+        calls = []
+        def command(argv, **options):
+            calls.append(argv[1:])
+            if argv[1] == "status":
+                return json.dumps({"state": "available"})
+            raise subprocess.CalledProcessError(1, argv, stderr="Installed files changed since preview; check again")
+        with patch.dict(self.api["execute_desktop"].__globals__,
+                        trusted_desktop_helper=lambda: "/usr/bin/dwm-desktop-update",
+                        run_command=command):
+            value = self.api["execute_desktop"](self.operation, "update")
+        self.assertEqual((value["outcome"], value["phase"]), ("failed", "failed"))
+        self.assertIn("Refresh the Update Center and try again", value["detail"])
+        self.assertEqual(calls, [["status"], ["check"]])
+
     def debian_snapshot(self, generation="b" * 64, restart="none", active=""):
         return ("system-management-protocol\t1\t0\n"
                 f"snapshot-generation\t{generation}\n"
