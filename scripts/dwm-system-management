@@ -7784,19 +7784,73 @@ class PackageKitBackend:
             pid = bus_identity("GetConnectionUnixProcessID", owner)
             if type(pid) is not int or not 0 < pid <= 2_147_483_647:
                 raise ValueError
+            uid = bus_identity("GetConnectionUnixUser", owner)
+            if type(uid) is not int or uid != 0:
+                raise ValueError
             installed = os.stat("/usr/libexec/packagekitd", follow_symlinks=False)
-            running = os.stat(f"/proc/{pid}/exe")
-            if any(not stat.S_ISREG(item.st_mode) or item.st_uid != 0 or item.st_mode & 0o022
-                   for item in (installed, running)):
+            if not stat.S_ISREG(installed.st_mode) or installed.st_uid != 0 or installed.st_mode & 0o022:
                 raise ValueError
-            if (installed.st_dev, installed.st_ino) != (running.st_dev, running.st_ino):
-                raise ValueError
+            try:
+                running = os.stat(f"/proc/{pid}/exe")
+            except PermissionError:
+                self._require_systemd_package_identity(pid, deadline)
+            else:
+                if (not stat.S_ISREG(running.st_mode) or running.st_uid != 0 or running.st_mode & 0o022
+                        or (installed.st_dev, installed.st_ino) != (running.st_dev, running.st_ino)):
+                    raise ValueError
             if bus_identity("GetNameOwner", PACKAGEKIT_NAME) != owner:
                 raise ValueError
         except (OSError, ValueError, TypeError, self.GLib.Error, SnapshotFailure) as error:
             # Some Debian procfs policies deny this read to session clients.
             # Do not elevate or guess that a same-version daemon was restarted.
             raise SnapshotFailure("unsupported", "Cannot verify the running PackageKit daemon; update it with APT, then reboot and reload Settings", "unsupported") from error
+
+    def _require_systemd_package_identity(self, pid: int, deadline: float) -> None:
+        """Use systemd's trusted unit metadata when procfs hides /proc/PID/exe."""
+        manager = SYSTEMD_MANAGER
+        unit_path = self.connection.call_sync(
+            SYSTEMD_NAME, SYSTEMD_PATH, manager, "GetUnit",
+            self.GLib.Variant("(s)", ("packagekit.service",)), None,
+            self.Gio.DBusCallFlags.NONE, self._timeout_ms(deadline), None).unpack()
+        if len(unit_path) != 1 or not isinstance(unit_path[0], str):
+            raise ValueError
+        path = unit_path[0]
+
+        def property_value(name: str) -> object:
+            result = self.connection.call_sync(
+                SYSTEMD_NAME, path, PROPERTIES_INTERFACE, "Get",
+                self.GLib.Variant("(ss)", ("org.freedesktop.systemd1.Unit", name)), None,
+                self.Gio.DBusCallFlags.NONE, self._timeout_ms(deadline), None).unpack()
+            if len(result) != 1:
+                raise ValueError
+            value = result[0]
+            return value.unpack() if callable(getattr(value, "unpack", None)) else value
+
+        if property_value("ActiveState") != "active":
+            raise ValueError
+        fragment = property_value("FragmentPath")
+        if fragment not in {"/usr/lib/systemd/system/packagekit.service",
+                            "/lib/systemd/system/packagekit.service"}:
+            raise ValueError
+        dropins = property_value("DropInPaths")
+        if not isinstance(dropins, (tuple, list)) or dropins:
+            raise ValueError
+        main_pid = property_value("MainPID")
+        if type(main_pid) is not int or main_pid != pid:
+            raise ValueError
+        service = self.connection.call_sync(
+            SYSTEMD_NAME, path, PROPERTIES_INTERFACE, "Get",
+            self.GLib.Variant("(ss)", ("org.freedesktop.systemd1.Service", "ExecStart")), None,
+            self.Gio.DBusCallFlags.NONE, self._timeout_ms(deadline), None).unpack()
+        if len(service) != 1:
+            raise ValueError
+        commands = service[0]
+        commands = commands.unpack() if callable(getattr(commands, "unpack", None)) else commands
+        if not isinstance(commands, (tuple, list)) or len(commands) != 1:
+            raise ValueError
+        command = commands[0]
+        if not isinstance(command, (tuple, list)) or len(command) < 2 or command[0] != "/usr/libexec/packagekitd":
+            raise ValueError
 
     def create_mutation(self) -> str:
         """Create and configure an empty transaction, without invoking package work."""

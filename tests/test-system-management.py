@@ -9665,7 +9665,7 @@ class PackageKitSafetyTests(unittest.TestCase):
             (types.SimpleNamespace(st_mode=regular, st_uid=1000, st_dev=1, st_ino=2), ":1.8", False),
             (types.SimpleNamespace(st_mode=stat.S_IFREG | 0o775, st_uid=0, st_dev=1, st_ino=2), ":1.8", False),
             (types.SimpleNamespace(st_mode=stat.S_IFREG | 0o757, st_uid=0, st_dev=1, st_ino=2), ":1.8", False),
-            (PermissionError("procfs denied"), ":1.8", False),
+            (PermissionError("procfs denied"), ":1.8", True),
             (installed, ":1.9", False),
         ):
             with self.subTest(running=running, final_owner=final_owner):
@@ -9674,9 +9674,12 @@ class PackageKitSafetyTests(unittest.TestCase):
                 backend.Gio = types.SimpleNamespace(DBusCallFlags=types.SimpleNamespace(NONE=0))
                 replies = [types.SimpleNamespace(unpack=lambda: (":1.8",)),
                            types.SimpleNamespace(unpack=lambda: (123,)),
+                           types.SimpleNamespace(unpack=lambda: (0,)),
                            types.SimpleNamespace(unpack=lambda: (final_owner,))]
                 backend.connection = mock.Mock()
                 backend.connection.call_sync.side_effect = replies
+                systemd_check = mock.Mock()
+                backend._require_systemd_package_identity = systemd_check
                 with mock.patch.object(provider.os, "stat", side_effect=[installed, running]) as read:
                     if accepted:
                         backend._require_running_package_identity()
@@ -9687,6 +9690,49 @@ class PackageKitSafetyTests(unittest.TestCase):
                 self.assertEqual(read.call_args_list, [mock.call("/usr/libexec/packagekitd", follow_symlinks=False),
                                                       mock.call("/proc/123/exe")])
                 self.assertEqual(backend.connection.call_sync.call_args_list[1].args[4], (":1.8",))
+                self.assertEqual(backend.connection.call_sync.call_args_list[2].args[4], (":1.8",))
+                if isinstance(running, PermissionError):
+                    systemd_check.assert_called_once()
+                else:
+                    systemd_check.assert_not_called()
+
+    def test_systemd_package_identity_fallback_requires_canonical_active_unit(self):
+        backend = provider.PackageKitBackend.__new__(provider.PackageKitBackend)
+        backend.GLib = types.SimpleNamespace(Variant=lambda signature, values: values)
+        backend.Gio = types.SimpleNamespace(DBusCallFlags=types.SimpleNamespace(NONE=0))
+
+        class Variant:
+            def __init__(self, value):
+                self.value = value
+
+            def unpack(self):
+                return self.value
+
+        def exercise(main_pid=123, dropins=(), executable="/usr/libexec/packagekitd"):
+            backend = provider.PackageKitBackend.__new__(provider.PackageKitBackend)
+            backend.GLib = types.SimpleNamespace(Variant=lambda signature, values: values)
+            backend.Gio = types.SimpleNamespace(DBusCallFlags=types.SimpleNamespace(NONE=0))
+            replies = [
+                Variant(("/org/freedesktop/systemd1/unit/packagekit_2eservice",)),
+                Variant((Variant("active"),)),
+                Variant((Variant("/usr/lib/systemd/system/packagekit.service"),)),
+                Variant((Variant(dropins),)),
+                Variant((Variant(main_pid),)),
+                Variant((Variant(((executable, [executable], False, 0, 0, 0, 0, 123, 0, 0),)),)),
+            ]
+            backend.connection = mock.Mock()
+            backend.connection.call_sync.side_effect = replies
+            return backend
+
+        backend = exercise()
+        backend._require_systemd_package_identity(123, time.monotonic() + 10)
+        self.assertEqual(backend.connection.call_sync.call_count, 6)
+
+        for invalid in (exercise(main_pid=124), exercise(dropins=("/etc/systemd/system/packagekit.service.d/override.conf",)),
+                        exercise(executable="/tmp/packagekitd")):
+            with self.subTest(invalid=invalid.connection.call_sync.side_effect):
+                with self.assertRaises((ValueError, TypeError)):
+                    invalid._require_systemd_package_identity(123, time.monotonic() + 10)
 
     def test_unknown_action_reports_unsupported_without_touching_backend(self):
         backend = mock.Mock()
