@@ -34,7 +34,7 @@ SH
 	chmod +x "$work/bin/$name"
 }
 
-for name in quickshell xprop dwm-quickshell-launcher dwm-quickshell-controlcenter dex picom dwm-settings-picom feh maim notify-send pactl brightnessctl xset gsettings light-locker setsid dwm-terminal dwm-default-apps dwm-settings-wallpaper xdg-open nwg-look pkill pgrep dnf; do
+for name in quickshell xprop dwm-quickshell-launcher dwm-quickshell-controlcenter dex picom dwm-settings-picom feh maim notify-send pactl brightnessctl xset gsettings light-locker setsid dwm-terminal dwm-default-apps dwm-settings-wallpaper xdg-open nwg-look pkill pgrep; do
 	stub_command "$name"
 done
 
@@ -240,8 +240,7 @@ printf '%s\n' "$health" | grep -Fqx 'ok	light-locker	light-locker is available'
 printf '%s\n' "$health" | grep -Fqx 'ok	Themes configuration	Readable'
 printf '%s\n' "$health" | grep -Fqx 'ok	Quickshell configuration	Readable'
 
-fedora_health=$(DWM_TEST_QUICKSHELL_VERSION='0.2.1, revision dacfa9de829ac7cb173825f593236bf2c21f637e' run_helper health)
-printf '%s\n' "$fedora_health" | grep -Fqx "$(printf 'ok\tQuickshell\tAvailable')"
+printf '%s\n' "$legacy_health" | grep -Fqx "$(printf 'ok\tQuickshell\tAvailable')"
 DWM_TEST_MODE=1 DWM_TEST_QUICKSHELL_VERSION='0.2.1^git20260209.dacfa9d-3.fc44' \
 	"$repo/scripts/dwm-quickshell-version-check"
 DWM_TEST_MODE=1 DWM_TEST_QUICKSHELL_VERSION='0.2.1^git20260209.dacfa9d-3.fc45' \
@@ -258,7 +257,7 @@ for unsupported_snapshot in \
 	0.2.1^git20260209.dacfa9d; do
 	if DWM_TEST_MODE=1 DWM_TEST_QUICKSHELL_VERSION=$unsupported_snapshot \
 		"$repo/scripts/dwm-quickshell-version-check" 2>/dev/null; then
-		printf 'Version check accepted snapshot outside the Fedora 44/45 contract: %s.\n' \
+		printf 'Version check accepted snapshot outside the legacy package snapshot contract: %s.\n' \
 			"$unsupported_snapshot" >&2
 		exit 1
 	fi
@@ -416,7 +415,7 @@ if DWM_TEST_QUICKSHELL_VERSION=0.2.1 run_helper action restart-quickshell \
 	printf 'Restart accepted an unsupported Quickshell version.\n' >&2
 	exit 1
 fi
-grep -Fq 'compatible Quickshell 0.3.0 or Fedora 44/45 snapshot is required' \
+grep -Fq 'compatible Quickshell 0.3.0 or legacy package snapshot is required' \
 	"$work/quickshell-outdated.err"
 grep -Fq 'pkill -x quickshell' "$work/actions.log"
 grep -Fq 'quickshell --no-duplicate' "$work/actions.log"

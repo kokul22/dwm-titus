@@ -1,26 +1,16 @@
-# Fedora 0.8 Roadmap
+# Roadmap
 
-## Current scope
+## Debian desktop port
 
-The four desktop features are implemented in PRs #424, #425, #422 and #423.
-On 2026-11-04, the user verified PR #425's static thumbnails and authorized
-merging all four PRs, addressing #368, and preparing the 0.8 release. Fedora 45 is the primary ISO base for 0.8; retain
-Fedora 44 compatibility, as the user explicitly selected.
+Make the existing dwm-titus desktop fully installable, updateable and testable
+on Debian-family APT systems, with Debian 13 as the reference platform.
 
-## Integration and release sequence
+Exit criteria:
 
-1. Merge #425 after recorded local review, tests and user acceptance.
-2. Integrate updated main into each remaining feature PR; resolve conflicts,
-   validate their combined native/QML behavior, complete independent review,
-   and merge #424 (layout controls), #423 (floating titlebars), and #422
-   (calendar/weather).
-3. Address #368 by checking the Wi-Fi package contract in newly built images,
-   including NetworkManager's Wi-Fi plugin, supplicant and regulatory database.
-   Source fixes do not repair the published v0.7.2 ISO.
-4. Prepare v0.8.0 source, changelog, release notes, checksummed artifacts and
-   Fedora 45 image qualification evidence, with Fedora 44 compatibility checks
-   and the intentionally updated SPEC.md platform contract.
-
-Record exact tested commits, reused unchanged evidence and hardware limitations.
-Do not describe an unbuilt or unqualified image as fixed or released. Preparing
-release artifacts does not replace publishing and verifying the new downloads.
+- The installer, package repair, desktop update and system-management paths use
+  Debian package services and reject non-Debian identities before changes.
+- Existing dwm, Quickshell, Settings, launcher, session, configuration and
+  accessibility workflows continue to work.
+- Debian package resolution, clean build, staged installation and focused
+  desktop checks pass on the host; gaps are recorded precisely.
+- The legacy image builder and distribution-specific packaging are removed.

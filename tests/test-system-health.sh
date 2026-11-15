@@ -7,13 +7,13 @@ work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 
 mkdir -p "$work/bin" "$work/home/.config/dwm-titus" "$work/home/.config/quickshell"
-printf 'ID=fedora\nPRETTY_NAME="Fedora Test"\n' >"$work/os-release"
+printf 'ID=debian\nVERSION_ID=13\nPRETTY_NAME="Debian Test"\n' >"$work/os-release"
 : >"$work/home/.config/dwm-titus/hotkeys.toml"
 : >"$work/home/.config/dwm-titus/themes.toml"
 : >"$work/home/.config/dwm-titus/window-rules.toml"
 : >"$work/home/.config/quickshell/shell.qml"
 
-cat >"$work/bin/dnf" <<'SCRIPT'
+cat >"$work/bin/apt-get" <<'SCRIPT'
 #!/bin/sh
 printf 'package consistency problem\n'
 exit 1
@@ -53,7 +53,7 @@ case "$*" in
 esac
 SCRIPT
 chmod +x "$work/bin/findmnt"
-chmod +x "$work/bin/dnf" "$work/bin/quickshell" "$work/bin/systemctl" "$work/bin/xclip"
+chmod +x "$work/bin/apt-get" "$work/bin/quickshell" "$work/bin/systemctl" "$work/bin/xclip"
 
 DWM_HEALTH_XCLIP_OUTPUT="$work/clipboard.txt" \
 	PATH="$work/bin:/usr/bin:/bin" \
@@ -113,8 +113,8 @@ if awk -F '\t' '$4 == "xinitrc" && $8 == "install-dependencies" { found=1 } END 
 fi
 awk -F '\t' '$4 == "xinitrc" && $8 == "" { found=1 } END { exit !found }' "$work/user.tsv"
 
-# Validate DNF audit timeout explanation
-cat >"$work/bin/dnf" <<'SCRIPT'
+# Validate APT audit timeout explanation
+cat >"$work/bin/apt-get" <<'SCRIPT'
 #!/bin/sh
 sleep 5
 exit 0
@@ -128,7 +128,7 @@ HOME="$work/home" \
 grep -Fq $'check\tdependencies\twarn\tpackage-database\tPackage database\tPackage audit needs attention\tPackage database audit timed out after 1s' "$work/timeout.tsv"
 
 # Reject invalid/unbounded audit durations and preserve valid positive seconds.
-cat >"$work/bin/dnf" <<'SCRIPT'
+cat >"$work/bin/apt-get" <<'SCRIPT'
 #!/bin/sh
 printf 'audit ran\n' >>"${DWM_AUDIT_LOG:?}"
 SCRIPT
@@ -136,7 +136,7 @@ cat >"$work/bin/timeout" <<'SCRIPT'
 #!/bin/sh
 duration=$1
 shift
-if [ "$1" = dnf ]; then
+if [ "$1" = apt-get ]; then
     printf '%s\n' "$duration" >>"${DWM_AUDIT_TIMEOUT_LOG:?}"
     exec "$@"
 fi
@@ -157,7 +157,7 @@ for audit_timeout in '' 0 -1 invalid 1.5 ' 7 ' 7; do
 	grep -Fq $'check\tdependencies\tok\tpackage-database' "$work/audit.tsv"
 done
 
-# A missing timeout utility must skip DNF instead of running it unbounded.
+# A missing timeout utility must skip APT instead of running it unbounded.
 cat >"$work/no-timeout-env" <<'SCRIPT'
 command() {
     if [[ $1 == -v && ${2:-} == timeout ]]; then

@@ -120,7 +120,7 @@ def snapshot():
                 row("update", "alpha;1;x86_64;updates", "normal", "installable", "alpha", "1", "Fixture")
                 row("package-change", "alpha;1;x86_64;updates", "update", "alpha", "1", "Fixture")
                 row("account", "/opaque/current", "current", "Fixture User", "fixture")
-                row("repository", "fedora", "enabled", "Fixture repository")
+                row("repository", "debian", "enabled", "Fixture repository")
                 if SNAPSHOT_MODE != "snapshot-core":
                     for owner in ("information", "storage", "security", "diagnostics"):
                         row("provider", owner, "partial" if owner == "information" or (owner == "storage" and SNAPSHOT_MODE == "snapshot-without-storage") else "available", "user-session" if owner == "diagnostics" else "read-only", "Fixture", "Read only")

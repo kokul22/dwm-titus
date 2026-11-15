@@ -50,7 +50,7 @@ class ProviderMetadata:
 
 
 REGISTRY = (
-    ProviderMetadata("fedora", "Fedora", True, "scan_fedora", can_recover=True),
+    ProviderMetadata("debian", "Debian", True, "scan_debian", can_recover=True),
     ProviderMetadata("dwm-titus", "DWM-Titus", True, "scan_desktop", can_recover=True),
     # Optional-provider recovery means supported recheck/retry, never rollback.
     ProviderMetadata("flatpak", "Flatpak", False, "scan_flatpak", can_recover=True),
@@ -58,7 +58,7 @@ REGISTRY = (
 )
 
 OPERATION_PATTERN = re.compile(r"op-[0-9a-f]{32}")
-OPERATION_PHASES = {"reserved", "launched", "running", "preparing", "fedora-executing", "fedora-dnf",
+OPERATION_PHASES = {"reserved", "launched", "running", "preparing", "debian-apt",
                     "desktop-starting", "flatpak-system", "flatpak-system-complete", "flatpak-user",
                     "flatpak-user-complete", "mise-inventory", "mise-update", "mise-recheck",
                     "recovering", "completed", "failed",
@@ -98,7 +98,7 @@ def validate_operation(value):
     if isinstance(value, dict) and set(value) == OPERATION_FIELDS - {"launcher_pid", "launcher_identity"}:
         value = {**value, "launcher_pid": 0, "launcher_identity": ""}
     providers = {meta.identifier for meta in REGISTRY}
-    phase_provider = {"fedora-executing": "fedora", "fedora-dnf": "fedora", "desktop-starting": "dwm-titus",
+    phase_provider = {"debian-apt": "debian", "desktop-starting": "dwm-titus",
                       "flatpak-system": "flatpak", "flatpak-system-complete": "flatpak",
                       "flatpak-user": "flatpak", "flatpak-user-complete": "flatpak",
                       "mise-inventory": "mise", "mise-update": "mise", "mise-recheck": "mise"}
@@ -207,9 +207,9 @@ def reserve_operation(provider, action, now=None):
             # Older recovery attempts replaced their scope checkpoint with a
             # generic phase. Keep the inherited evidence until work advances.
             recovery_provider_phase = existing["recovery_provider_phase"]
-        if (action == "recover" and provider == "fedora" and existing is not None
-                and "fedora-dnf" in {existing["provider_phase"], existing["recovery_provider_phase"]}):
-            recovery_provider_phase = "fedora-dnf"
+        if (action == "recover" and provider == "debian" and existing is not None
+                and "debian-apt" in {existing["provider_phase"], existing["recovery_provider_phase"]}):
+            recovery_provider_phase = "debian-apt"
         value = {"schema": 1, "operation": "op-" + secrets.token_hex(16), "provider": provider,
                  "action": action, "phase": "reserved",
                  "provider_phase": recovery_provider_phase,
@@ -407,7 +407,7 @@ def escape(value):
     return value.replace("\\", "\\\\").replace("\t", "\\t").replace("\n", "\\n").replace("\r", "\\r")
 
 
-def require_fedora(path=Path("/etc/os-release")):
+def require_debian(path=Path("/etc/os-release")):
     try:
         with open(path, "rb") as stream:
             data = stream.read(65537)
@@ -421,15 +421,15 @@ def require_fedora(path=Path("/etc/os-release")):
             if not match or match[1] in values:
                 raise ValueError()
             values[match[1]] = next(value for value in match.groups()[1:] if value is not None)
-        if values.get("ID") != "fedora":
+        if values.get("ID") not in {"debian", "ubuntu"} and "debian" not in values.get("ID_LIKE", "").split():
             raise ValueError()
     except (OSError, UnicodeError, ValueError) as error:
-        raise ValueError("Fedora identity is required") from error
+        raise ValueError("Debian identity is required") from error
 
 
 def require_desktop_platform(path=Path("/etc/os-release")):
     try:
-        require_fedora(path)
+        require_debian(path)
         return
     except ValueError:
         pass
@@ -446,10 +446,10 @@ def require_desktop_platform(path=Path("/etc/os-release")):
             if not match or match[1] in values:
                 raise ValueError()
             values[match[1]] = next(value for value in match.groups()[1:] if value is not None)
-        if values.get("ID") != "debian" or values.get("VERSION_ID") != "13":
+        if values.get("ID") not in {"debian", "ubuntu"} and "debian" not in values.get("ID_LIKE", "").split():
             raise ValueError()
     except (OSError, UnicodeError, ValueError) as error:
-        raise ValueError("Fedora or Debian 13 identity is required") from error
+        raise ValueError("Debian based identity is required") from error
 
 
 def bounded_lines(payload):
@@ -465,24 +465,24 @@ def bounded_lines(payload):
     return lines
 
 
-def parse_fedora_snapshot(payload):
+def parse_debian_snapshot(payload):
     """Strictly consume the existing 1.0-1.2 machine protocol, never CLI text."""
     def normalize_restart(status, value):
         if status not in STATUSES:
-            raise ValueError("invalid Fedora restart state")
+            raise ValueError("invalid Debian restart state")
         if value in {"none", "unknown"}:
             return "none"
         if value in {"system", "security-system"}:
             return "system"
         if value in {"session", "security-session", "application"}:
             return "session"
-        raise ValueError("invalid Fedora restart state")
+        raise ValueError("invalid Debian restart state")
 
     lines = bounded_lines(payload)
     if not lines or lines[0] not in {f"system-management-protocol\t1\t{minor}" for minor in range(3)}:
-        raise ValueError("invalid Fedora protocol")
+        raise ValueError("invalid Debian protocol")
     if lines[-1] != "complete\tsnapshot":
-        raise ValueError("incomplete Fedora snapshot")
+        raise ValueError("incomplete Debian snapshot")
     sizes = {"snapshot-generation": 2, "provider": 6, "state": 5, "action": 7,
              "update": 7, "package-change": 6, "error": 4, "account": 5,
              "repository": 4, "filesystem": 10, "active-operation": 8,
@@ -494,61 +494,61 @@ def parse_fedora_snapshot(payload):
         fields = line.split("\t")
         kind = fields[0]
         if kind not in sizes or len(fields) != sizes[kind]:
-            raise ValueError("unknown Fedora record or fields")
+            raise ValueError("unknown Debian record or fields")
         # Existing provider sanitizes tabs/newlines, but does not use escaping.
         if any("\r" in field for field in fields):
-            raise ValueError("invalid Fedora field")
+            raise ValueError("invalid Debian field")
         for field in fields:
             escape(field)
         if kind == "provider" and fields[1] == "updates":
             if provider is not None or fields[2] not in STATUSES:
-                raise ValueError("invalid Fedora provider")
+                raise ValueError("invalid Debian provider")
             provider = fields[2]
             provider_detail = fields[5]
         elif kind == "state" and fields[1] == "update-summary":
             if summary is not None or fields[2] not in STATUSES:
-                raise ValueError("invalid Fedora count")
+                raise ValueError("invalid Debian count")
             if fields[2] != "available":
                 if fields[3] != "unknown":
-                    raise ValueError("invalid Fedora count")
+                    raise ValueError("invalid Debian count")
                 discovery_failure, summary = True, -1
             else:
                 if not re.fullmatch(r"0|[1-9][0-9]{0,4}", fields[3]) or int(fields[3]) > MAX_ITEMS:
-                    raise ValueError("invalid Fedora count")
+                    raise ValueError("invalid Debian count")
                 summary = int(fields[3])
         elif kind == "state" and fields[1] == "update-restart":
             if "restart-state" in seen:
-                raise ValueError("invalid Fedora restart state")
+                raise ValueError("invalid Debian restart state")
             seen.add("restart-state")
             restart = normalize_restart(fields[2], fields[3])
         elif kind == "action" and fields[1] == "updates-install-all":
             if "install-action" in seen or fields[2] not in STATUSES:
-                raise ValueError("invalid Fedora action")
+                raise ValueError("invalid Debian action")
             seen.add("install-action")
             update_available = fields[2] == "available"
         elif kind == "update":
             identity = fields[1]
             if identity in seen or len(identity.split(";")) != 4 or any(not part for part in identity.split(";")):
-                raise ValueError("invalid Fedora package identity")
+                raise ValueError("invalid Debian package identity")
             if fields[3] not in {"installable", "blocked"} or not fields[4] or not fields[5]:
-                raise ValueError("invalid Fedora item")
+                raise ValueError("invalid Debian item")
             seen.add(identity)
             rows.append(ItemResult("update", fields[4], "unknown", fields[5], identity))
         elif kind == "package-change":
             if fields[1] in plans or fields[2] not in {"install", "update", "remove", "reinstall", "downgrade", "obsolete"}:
-                raise ValueError("invalid Fedora plan")
+                raise ValueError("invalid Debian plan")
             plans[fields[1]] = fields[2]
         elif kind == "error" and fields[1] == "updates":
             failures.append(ScanFailure(fields[2], fields[3]))
         elif kind in {"active-operation", "terminal-handoff"}:
             active = True
     if discovery_failure:
-        raise failures[0] if failures else ScanFailure("scan-failed", "Fedora discovery unavailable")
+        raise failures[0] if failures else ScanFailure("scan-failed", "Debian discovery unavailable")
     if provider is None or summary is None or "install-action" not in seen or summary != len(rows):
-        raise ValueError("inconsistent Fedora snapshot")
+        raise ValueError("inconsistent Debian snapshot")
     items = tuple(replace(row, action=plans.get(row.package_id, row.action))
                   for row in sorted(rows, key=lambda item: item.package_id.encode("utf-8")))
-    return ProviderResult("fedora", provider, summary, update_available=update_available and not active,
+    return ProviderResult("debian", provider, summary, update_available=update_available and not active,
                           detail=provider_detail, restart=restart, items=items)
 
 
@@ -970,35 +970,23 @@ def run_bounded(argv, *, timeout=180, env=None, cwd=None):
         process.stderr.close()
 
 
-def fedora_package_count():
+def debian_package_count():
     try:
-        import sqlite3
-    except ImportError:
-        sqlite3 = None
-    if sqlite3 is not None:
-        for db_path in ("/usr/lib/sysimage/rpm/rpmdb.sqlite", "/var/lib/rpm/rpmdb.sqlite"):
-            try:
-                with sqlite3.connect(f"file:{db_path}?mode=ro", uri=True) as con:
-                    row = con.execute("SELECT count(*) FROM Packages").fetchone()
-                    if row and isinstance(row[0], int) and 0 <= row[0] <= 10000000:
-                        return row[0]
-            except (OSError, ValueError, sqlite3.Error):
-                continue
-    try:
-        import rpm
-        return sum(1 for _ in rpm.TransactionSet().dbMatch())
-    except (ImportError, Exception):
+        payload = run_bounded(["/usr/bin/dpkg-query", "-W", "-f=${db:Status-Status}\n"], timeout=30)
+    except (OSError, subprocess.SubprocessError):
         return None
+    count = sum(line == "installed" for line in payload.splitlines())
+    return count if count <= 10000000 else None
 
 
-def scan_fedora():
+def scan_debian():
     try:
-        require_fedora()
+        require_debian()
     except ValueError as error:
-        raise ScanFailure("unsupported", "The Fedora package provider is available only on Fedora") from error
+        raise ScanFailure("unsupported", "The APT package provider is available only on Debian based distributions") from error
     helper = Path(__file__).resolve().with_name("dwm-system-management")
-    result = parse_fedora_snapshot(run_bounded([str(helper), "snapshot-updates"], timeout=180))
-    count = fedora_package_count()
+    result = parse_debian_snapshot(run_bounded([str(helper), "snapshot-updates"], timeout=180))
+    count = debian_package_count()
     if count is not None:
         result = replace(result, managed=count)
     return result

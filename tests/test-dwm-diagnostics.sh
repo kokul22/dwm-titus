@@ -31,12 +31,12 @@ exit 1
 SCRIPT
 chmod +x "$work/bin/pkg-config"
 
-cat >"$work/bin/rpm" <<'SCRIPT'
+cat >"$work/bin/dpkg-query" <<'SCRIPT'
 #!/bin/sh
 [ "$1" = -q ] || exit 2
 [ "$2" != "${DWM_TEST_MISSING_PACKAGE:-}" ]
 SCRIPT
-chmod +x "$work/bin/rpm"
+chmod +x "$work/bin/dpkg-query"
 
 env HOME="$work/home" PATH="$work/bin" "$BASH_BIN" "$HELPER" >"$work/ok"
 grep -Fqx "  required_failures=0" "$work/ok"

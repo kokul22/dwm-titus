@@ -7,8 +7,8 @@ eyebrow: First session
 
 # Getting Started
 
-> dwm-titus is a Fedora-only X11 desktop. These instructions assume a supported
-> Fedora installation completed through the Fedora image or `install.sh`.
+> dwm-titus is a Debian-only X11 desktop. These instructions assume a supported
+> Debian installation completed through the Debian image or `install.sh`.
 
 After installing, the first thing to know: **Super** = the Windows key.
 

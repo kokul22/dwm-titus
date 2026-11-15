@@ -3,7 +3,7 @@
 ## Startup chain
 
 1. LightDM starts `/usr/share/xsessions/dwm.desktop` (`/usr/local/bin/dwm`)
-   through the Fedora Xsession wrapper; stdout and stderr go to
+   through the Debian Xsession wrapper; stdout and stderr go to
    `~/.xsession-errors`. `~/.xinitrc` is only for `startx`.
 2. dwm runs `~/.local/share/dwm-titus/scripts/autostart.sh` on start and
    `autostop.sh` on exit.

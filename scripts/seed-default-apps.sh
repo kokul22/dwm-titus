@@ -1,5 +1,5 @@
 #!/bin/bash
-# Seed fresh Fedora accounts; never replace existing application preferences.
+# Seed fresh Debian accounts; never replace existing application preferences.
 set -euo pipefail
 [[ $(id -u) != 0 ]]
 [[ $# == 0 || ($# == 1 && $1 == --image) ]]

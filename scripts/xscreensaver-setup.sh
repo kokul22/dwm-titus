@@ -1,7 +1,7 @@
 #!/bin/bash
 # ─────────────────────────────────────────────────────────
 # xscreensaver-setup.sh — Install and configure xscreensaver
-# Uses Fedora's package manager, installs xscreensaver, writes
+# Uses APT to install xscreensaver, writes
 # a sensible default config, and sets it up to start on login.
 # ─────────────────────────────────────────────────────────
 set -euo pipefail
@@ -32,15 +32,15 @@ if [[ -r $OS_RELEASE_FILE ]]; then
 	source "$OS_RELEASE_FILE"
 	DISTRO_ID=${ID:-unknown}
 fi
-[[ $DISTRO_ID == fedora ]] || fail "dwm-titus supports Fedora only."
+[[ $DISTRO_ID == debian || $DISTRO_ID == ubuntu ]] || fail "dwm-titus supports Debian based distributions only."
 
 # ── Detect package manager and install ───────────────────
 header "Installing xscreensaver"
 
 install_pkg() {
-	command -v dnf >/dev/null 2>&1 || fail "dnf is required; dwm-titus supports Fedora only."
-	info "Installing with dnf"
-	sudo dnf install -y xscreensaver
+	command -v apt-get >/dev/null 2>&1 || fail "apt-get is required; dwm-titus supports Debian based distributions only."
+	info "Installing with APT"
+	sudo apt-get install -y -- xscreensaver
 }
 
 if command -v xscreensaver &>/dev/null; then

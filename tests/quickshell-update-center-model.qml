@@ -69,7 +69,7 @@ ShellRoot {
                         && initiallyFullModel.initialCacheLoaded && model.savedRefreshSeconds === 900
                         && !model.pendingSaveReload && !model.settingsLoading) {
                     test.require(!model.savedFloating, "legacy preferences default to tiled");
-                    const operationEnvelope = "update-center-action-protocol\t1\t0\noperation\top-00000000000000000000000000000000\tfedora\trecover\t";
+                    const operationEnvelope = "update-center-action-protocol\t1\t0\noperation\top-00000000000000000000000000000000\tdebian\trecover\t";
                     for (const phase of ["failed", "closed"])
                         test.require(Protocol.parseAction(operationEnvelope + phase + "\tunknown\ncomplete\taction\n") !== null,
                             "reconciled unknown outcomes must remain representable without claiming success");
@@ -124,14 +124,14 @@ ShellRoot {
                     test.require(model.loadSettings("update-center-settings-protocol\t1\t0\nstate\tavailable\tReady\npreference\trefreshSeconds\t900\npreference\talwaysShow\tenabled\nbaseline\tbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\ncomplete\tstatus\n")
                             && model.settingsWritable, "safe preferences must restore editing");
                     const prior = model.providers;
-                    const valid = "update-center-protocol\t1\t0\nprovider\tfedora\tFedora\tavailable\t1\t1\tfresh\t10\tyes\t\tReady\nitem\tfedora\tupdate\tPackage\t1\t2\tpkg\tsystem\thttps://example.test/release\ncomplete\tsnapshot\n";
+                    const valid = "update-center-protocol\t1\t0\nprovider\tdebian\tDebian\tavailable\t1\t1\tfresh\t10\tyes\t\tReady\nitem\tdebian\tupdate\tPackage\t1\t2\tpkg\tsystem\thttps://example.test/release\ncomplete\tsnapshot\n";
                     const invalid = [
                         valid.replace("protocol\t1\t0", "protocol\t2\t0"),
                         valid.replace("complete\tsnapshot\n", ""),
-                        valid.replace("item\tfedora", "unknown\tfedora"),
+                        valid.replace("item\tdebian", "unknown\tdebian"),
                         valid.replace("\t1\t1\tfresh", "\t2\t1\tfresh"),
                         valid.replace("https://example.test", "http://example.test"),
-                        valid.replace("complete\tsnapshot\n", "provider\tfedora\tFedora\tavailable\t0\t0\tfresh\t10\tno\t\tDuplicate\ncomplete\tsnapshot\n"),
+                        valid.replace("complete\tsnapshot\n", "provider\tdebian\tDebian\tavailable\t0\t0\tfresh\t10\tno\t\tDuplicate\ncomplete\tsnapshot\n"),
                         "update-center-protocol\t1\t0\n" + Array(16385).fill("unknown\tx").join("\n") + "\ncomplete\tsnapshot\n"
                     ];
                     for (const payload of invalid) test.require(!model.acceptSnapshot(payload), "invalid protocol must fail closed");
@@ -202,7 +202,7 @@ ShellRoot {
                 } else if (test.step === 6 && model.message.indexOf("fixture scan failure") >= 0) {
                     test.require(model.providers === test.retainedProviders && model.providers[0].detail === "force-4",
                         "failed refresh must preserve prior providers and items");
-                    test.require(model.launch("fedora"), "normal provider launch must dispatch");
+                    test.require(model.launch("debian"), "normal provider launch must dispatch");
                     test.step = 7;
                 } else if (test.step === 7 && !model.busy && model.providers[0].detail === "force-6") {
                     test.require(model.launch("dwm-titus"), "failed terminal fixture must dispatch");

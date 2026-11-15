@@ -193,7 +193,7 @@ Flickable {
             wrapMode: Text.WordWrap
         }
 
-        SectionLabel { label: "Fedora updates" }
+        SectionLabel { label: "System updates" }
 
         SystemUpdateControls {
             id: updateControls

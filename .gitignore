@@ -32,7 +32,6 @@ __pycache__/
 /vicinae/
 
 # Local CI validation virtualenv
-/.ci-pykickstart/
 
 # Generated Astro documentation output and local dependencies.
 /docs/.astro/

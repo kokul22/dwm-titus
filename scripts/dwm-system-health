@@ -498,12 +498,12 @@ scan_desktop() {
 		if quickshell_compatible "$version" "$detail"; then
 			emit_check desktop ok quickshell-version "Quickshell" "Available" "$detail" restart-quickshell "Restart Quickshell" user
 		elif [[ -n $version ]]; then
-			emit_check desktop error quickshell-version "Quickshell" "Outdated" "$detail; version 0.3.0 or the supported Fedora 44/45 snapshot is required" "" "" none
+			emit_check desktop error quickshell-version "Quickshell" "Outdated" "$detail; version 0.3.0 or newer is required" "" "" none
 		else
-			emit_check desktop error quickshell-version "Quickshell" "Version unavailable" "Could not verify Quickshell 0.3.0 or the supported Fedora 44/45 snapshot" "" "" none
+			emit_check desktop error quickshell-version "Quickshell" "Version unavailable" "Could not verify Quickshell 0.3.0 or newer" "" "" none
 		fi
 	else
-		emit_check desktop error quickshell-version "Quickshell" "Missing" "The managed shell requires Quickshell 0.3.0 or the supported Fedora 44/45 snapshot" install-dependencies "Open dependency installer" user
+		emit_check desktop error quickshell-version "Quickshell" "Missing" "The managed shell requires Quickshell 0.3.0 or newer" install-dependencies "Open dependency installer" user
 	fi
 
 	if command -v picom >/dev/null 2>&1; then
@@ -571,24 +571,25 @@ scan_network() {
 
 scan_package_database() {
 	local os_file=${DWM_HEALTH_OS_RELEASE:-/etc/os-release}
-	local id=unknown output='' family=unknown status=ok
+	local id=unknown like= output='' family=unknown status=ok
 
 	if [[ -r $os_file ]]; then
 		# shellcheck disable=SC1090
 		source "$os_file"
 		id=${ID:-unknown}
+		like=${ID_LIKE:-}
 	fi
-	[[ $id == fedora ]] && family=fedora
+	[[ " $id $like " == *" debian "* || " $id " == *" ubuntu "* ]] && family=debian
 
 	case $family in
-	fedora)
-		if command -v dnf >/dev/null 2>&1; then
+	debian)
+		if command -v apt-get >/dev/null 2>&1; then
 			if command -v timeout >/dev/null 2>&1; then
 				local db_timeout=${DWM_HEALTH_PACKAGE_DB_TIMEOUT:-60}
 				if ! [[ $db_timeout =~ ^[1-9][0-9]*$ ]]; then
 					db_timeout=60
 				fi
-				if output=$(run_bounded_timeout "$db_timeout" dnf -q --cacheonly check 2>&1); then
+				if output=$(run_bounded_timeout "$db_timeout" apt-get check 2>&1); then
 					:
 				else
 					local exit_code=$?
@@ -602,12 +603,12 @@ scan_package_database() {
 				output="timeout is unavailable; package database audit skipped"
 			fi
 		else
-			output="dnf is unavailable"
+			output="apt-get is unavailable"
 			status=restricted
 		fi
 		;;
 	*)
-		emit_check dependencies info package-database "Package database" "Fedora is required for package validation" "$id"
+		emit_check dependencies info package-database "Package database" "A Debian based distribution is required for package validation" "$id"
 		return
 		;;
 	esac

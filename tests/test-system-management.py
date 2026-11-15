@@ -240,7 +240,7 @@ def rows(lines, kind):
 
 class LocalInformationTests(unittest.TestCase):
     FILES = {
-        "/etc/os-release": b'NAME=ignored\nPRETTY_NAME="Fedora Linux 44 (Fixture)"\nVERSION_ID=44\n',
+        "/etc/os-release": b'NAME=ignored\nPRETTY_NAME="Debian Linux 44 (Fixture)"\nVERSION_ID=44\n',
         "/proc/cpuinfo": b"processor: 0\nmodel name\t: Fixture CPU\nmodel name: Later CPU\n",
         "/proc/meminfo": b"MemTotal: 1024 kB\nMemAvailable: 768 kB\nSwapTotal: 256 kB\nSwapFree: 128 kB\n",
     }
@@ -301,7 +301,7 @@ class LocalInformationTests(unittest.TestCase):
     def test_complete_fixed_local_snapshot(self):
         result = self.read()
         self.assertTrue(all(state.status == "available" and state.error_code == "" for state in result.values()))
-        expected = {"os-name": "Fedora Linux 44 (Fixture)", "os-version": "44",
+        expected = {"os-name": "Debian Linux 44 (Fixture)", "os-version": "44",
             "kernel-release": "6.fixture", "architecture": "x86_64", "cpu-model": "Fixture CPU",
             "logical-cpus": "4", "memory-total-bytes": "1048576", "memory-available-bytes": "786432",
             "swap-total-bytes": "262144", "swap-free-bytes": "131072", "uptime-seconds": "10"}
@@ -348,7 +348,7 @@ class LocalInformationTests(unittest.TestCase):
     def test_missing_fields_and_invalid_utf8_are_scoped(self):
         result = self.read({"/etc/os-release": b"", "/proc/cpuinfo": b"", "/proc/meminfo": b""})
         self.assertEqual(sum(state.status == "available" for state in result.values()), 4)
-        for path, identifier, target in (("/etc/os-release", "os-name", b"Fedora Linux 44 (Fixture)"),
+        for path, identifier, target in (("/etc/os-release", "os-name", b"Debian Linux 44 (Fixture)"),
                 ("/proc/cpuinfo", "cpu-model", b"Fixture CPU"), ("/proc/meminfo", "memory-total-bytes", b"1024 kB")):
             result = self.read({path: self.FILES[path].replace(target, b"\xff")})
             self.assertEqual(result[identifier].error_code, "malformed")
@@ -847,14 +847,14 @@ class RootEncryptionTests(unittest.TestCase):
         self.assertEqual(self.parse(rows).value, "encrypted")
 
     def test_mapper_parent_kernel_alias_and_lvm_root(self):
-        root = self.node("fedora-root", type="lvm", fstype="btrfs", mountpoints=["/", "/home"], pkname="dm-0")
+        root = self.node("debian-root", type="lvm", fstype="btrfs", mountpoints=["/", "/home"], pkname="dm-0")
         crypt = self.node("luks-volume", type="crypt", pkname="disk", children=[root])
         self.assertEqual(self.parse([self.node(children=[crypt])]).value, "encrypted")
         # kpartx mapper partitions also have a PART-prefixed UUID and alias.
         crypt["type"] = "part"
         self.assertEqual(self.parse([self.node(fstype="crypto_LUKS", children=[crypt])]).value, "encrypted")
         # A second child must observe the same kernel identity for this mapper.
-        crypt["children"].append(self.node("fedora-swap", type="lvm", fstype="swap", pkname="dm-1"))
+        crypt["children"].append(self.node("debian-swap", type="lvm", fstype="swap", pkname="dm-1"))
         self.assert_unknown([self.node(children=[crypt])])
 
     def test_multiple_backing_paths_all_encrypted_or_mixed(self):
@@ -2517,7 +2517,7 @@ class RegionalMutationTests(unittest.TestCase):
         return client
 
     def run_client(self, client, *, interruptible=False):
-        with mock.patch.object(provider, "read_fedora_identity", return_value={"ID": "fedora"}), \
+        with mock.patch.object(provider, "read_debian_identity", return_value={"ID": "debian"}), \
                 mock.patch.object(provider, "read_locale_choices", return_value=("C", "en_US.utf8")), \
                 mock.patch.object(provider.time, "monotonic", side_effect=lambda: self.clock):
             if interruptible:
@@ -2571,7 +2571,7 @@ class RegionalMutationTests(unittest.TestCase):
                 with self.assertRaises(RuntimeError):
                     self.run_client(client)
 
-    def test_validation_and_fedora_rejection_precede_connection_or_admission(self):
+    def test_validation_and_unsupported_identity_precede_connection_or_admission(self):
         client = self.client()
         for action, argument, generation in (("SetTime", "UTC", "a" * 64),
                                             ("timezone-set", "../UTC", "a" * 64),
@@ -2580,7 +2580,7 @@ class RegionalMutationTests(unittest.TestCase):
                                             ("timezone-set", "UTC", "A" * 64)):
             with self.assertRaises(provider.SnapshotFailure):
                 provider.RegionalMutation(action, argument, generation, mock.Mock(), mock.Mock(), self.gio, self.glib)
-        with mock.patch.object(provider, "read_fedora_identity", side_effect=provider.SnapshotFailure("unsupported", "Not Fedora")):
+        with mock.patch.object(provider, "read_debian_identity", side_effect=provider.SnapshotFailure("unsupported", "Not Debian")):
             with self.assertRaises(provider.SnapshotFailure):
                 client.run()
         self.gio.bus_get.assert_not_called()
@@ -3363,7 +3363,7 @@ class DelegatedToolTests(unittest.TestCase):
 
     def test_fixed_tool_paths_and_password_argv(self):
         expected = {"accounts-open": "/usr/bin/lxqt-admin-user", "printers-open": "/usr/bin/system-config-printer",
-                    "sources-open": "/usr/bin/dnfdragora"}
+                    "sources-open": "/usr/bin/synaptic"}
         for action, path in expected.items():
             with self.subTest(action=action), mock.patch.object(provider, "trusted_delegated_executable", side_effect=lambda path, _name: path) as trusted, \
                     mock.patch.object(provider, "read_terminal_selection") as selector:
@@ -8387,7 +8387,7 @@ class JournalLifecycleTests(unittest.TestCase):
     started = "2026-09-04T18:00:00Z"
     finished = "2026-09-04T18:01:00Z"
 
-    def test_fedora_transaction_paths_are_root_level_bounded_ids(self):
+    def test_debian_transaction_paths_are_root_level_bounded_ids(self):
         for path in ("/18_adcbcaed", "/45_dafeca"):
             self.assertIsNotNone(provider.JOURNAL_PACKAGEKIT_PATH_PATTERN.fullmatch(path))
         for path in (
@@ -9460,7 +9460,7 @@ class JournalDirectoryChainTests(unittest.TestCase):
 
 
 class SnapshotValidationTests(unittest.TestCase):
-    def test_dnf5_requested_installs_remain_visible_in_complete_plan(self):
+    def test_apt_requested_installs_remain_visible_in_complete_plan(self):
         updates = tuple(package(8, f"pkg-{index};2;x86_64;updates", "Update")
                         for index in range(23))
         plan = tuple(package(12 if index < 5 else 11, update.package_id, "Change")
@@ -9636,29 +9636,27 @@ class SnapshotValidationTests(unittest.TestCase):
 
 
 class PackageKitSafetyTests(unittest.TestCase):
-    def test_backport_gate_is_required_before_mutation_is_enabled(self):
-        for micro in (4, 6):
-            with self.subTest(micro=micro):
-                backend = provider.PackageKitBackend.__new__(provider.PackageKitBackend)
-                backend.GLib = types.SimpleNamespace(Variant=lambda signature, values: values)
-                backend._call = mock.Mock(return_value=types.SimpleNamespace(unpack=lambda: (
-                    {"VersionMajor": 1, "VersionMinor": 3, "VersionMicro": micro},)))
-                backend._require_running_backport_identity = mock.Mock(
-                    side_effect=provider.SnapshotFailure("unsupported", "Old running executable", "unsupported"))
-                rpm = types.SimpleNamespace(error=RuntimeError, labelCompare=lambda left, right: 0,
-                    TransactionSet=lambda: types.SimpleNamespace(dbMatch=lambda *args: [
-                        {"epoch": None, "version": f"1.3.{micro}", "release": "3.fc44"}]))
-                with mock.patch.dict(sys.modules, {"rpm": rpm}), mock.patch.object(
-                    provider, "read_fedora_identity", return_value={"ID": "fedora", "VERSION_ID": "44"}):
-                    if micro == 4:
-                        with self.assertRaises(provider.SnapshotFailure):
-                            backend.require_mutation_safe()
-                        backend._require_running_backport_identity.assert_called_once_with()
-                    else:
-                        backend.require_mutation_safe()
-                        backend._require_running_backport_identity.assert_not_called()
+    def test_debian_packagekit_floor_and_active_daemon_are_required(self):
+        backend = provider.PackageKitBackend.__new__(provider.PackageKitBackend)
+        backend.GLib = types.SimpleNamespace(Variant=lambda signature, values: values, Error=RuntimeError)
+        backend._call = mock.Mock(return_value=types.SimpleNamespace(unpack=lambda: (
+            {"VersionMajor": 1, "VersionMinor": 3, "VersionMicro": 1},)))
+        backend._require_running_package_identity = mock.Mock()
+        completed = subprocess.CompletedProcess([], 0, stdout="1.3.1-1+deb13u1\n")
+        with mock.patch.object(provider, "read_debian_identity", return_value={"ID": "debian", "VERSION_ID": "13"}), \
+                mock.patch.object(provider.subprocess, "run", side_effect=[completed, subprocess.CompletedProcess([], 0)]):
+            backend.require_mutation_safe()
+        backend._require_running_package_identity.assert_called_once_with()
 
-    def test_backport_requires_running_executable_identity_and_stable_bus_owner(self):
+        backend._require_running_package_identity.reset_mock()
+        old = subprocess.CompletedProcess([], 0, stdout="1.3.1-1\n")
+        with mock.patch.object(provider, "read_debian_identity", return_value={"ID": "debian", "VERSION_ID": "13"}), \
+                mock.patch.object(provider.subprocess, "run", side_effect=[old, subprocess.CompletedProcess([], 1)]):
+            with self.assertRaises(provider.SnapshotFailure):
+                backend.require_mutation_safe()
+        backend._require_running_package_identity.assert_not_called()
+
+    def test_running_package_identity_and_stable_bus_owner(self):
         regular = stat.S_IFREG | 0o755
         installed = types.SimpleNamespace(st_mode=regular, st_uid=0, st_dev=1, st_ino=2)
         for running, final_owner, accepted in (
@@ -9681,10 +9679,10 @@ class PackageKitSafetyTests(unittest.TestCase):
                 backend.connection.call_sync.side_effect = replies
                 with mock.patch.object(provider.os, "stat", side_effect=[installed, running]) as read:
                     if accepted:
-                        backend._require_running_backport_identity()
+                        backend._require_running_package_identity()
                     else:
                         with self.assertRaises(provider.SnapshotFailure) as raised:
-                            backend._require_running_backport_identity()
+                            backend._require_running_package_identity()
                         self.assertEqual(raised.exception.status, "unsupported")
                 self.assertEqual(read.call_args_list, [mock.call("/usr/libexec/packagekitd", follow_symlinks=False),
                                                       mock.call("/proc/123/exe")])
@@ -9698,38 +9696,17 @@ class PackageKitSafetyTests(unittest.TestCase):
         self.assertEqual((raised.exception.code, raised.exception.status), ("unsupported", "unsupported"))
         self.assertEqual(backend.mock_calls, [])
 
-    def test_security_floor_uses_rpm_order_and_checks_running_daemon(self):
-        compare = mock.Mock(return_value=0)
-        self.assertTrue(provider.packagekit_security_floor("1.3.5", "1.fc44", "44", (1, 3, 5), compare))
-        compare.assert_called_once_with(("0", "1.3.5", "1.fc44"), ("0", "1.3.5", "0"))
-        compare = mock.Mock(side_effect=[-1, 0])
-        self.assertTrue(provider.packagekit_security_floor("1.3.4", "3.fc44", "44", (1, 3, 4), compare))
-        self.assertEqual(compare.call_args.args[1], ("0", "1.3.4", "3.fc44"))
-        for version, release, fedora, daemon in (
-            ("1.3.4", "2.fc44", "44", (1, 3, 4)),
-            ("1.3.4", "3.fc44", "43", (1, 3, 4)),
-            ("1.3.4", "3.fc43", "44", (1, 3, 4)),
-            ("1.3.4", "3.fc44.custom", "44", (1, 3, 4)),
-            ("1.3.6", "1.fc44", "44", (1, 3, 4)),
-            ("1.3.6", "1.fc44", "44", (True, 3, 6)),
-            ("1.3.6", "1.fc44", "44", None),
-            ("1.3.6;bad", "1.fc44", "44", (1, 3, 6)),
-        ):
-            with self.subTest(version=version, release=release, fedora=fedora, daemon=daemon):
-                self.assertFalse(provider.packagekit_security_floor(version, release, fedora, daemon,
-                                                                    mock.Mock(return_value=-1)))
-
     def test_platform_identity_is_fixed_bounded_and_never_evaluated(self):
-        with mock.patch("builtins.open", mock.mock_open(read_data=b'ID=fedora\nVERSION_ID="44"\nNAME="ignored"\n')) as source:
-            self.assertEqual(provider.read_fedora_identity(), {"ID": "fedora", "VERSION_ID": "44"})
+        with mock.patch("builtins.open", mock.mock_open(read_data=b'ID=debian\nVERSION_ID="13"\nNAME="ignored"\n')) as source:
+            self.assertEqual(provider.read_debian_identity(), {"ID": "debian", "VERSION_ID": "13"})
             source.assert_called_once_with("/etc/os-release", "rb")
             source().read.assert_called_once_with(65537)
-        for data in (b"ID=ubuntu\nID_LIKE=fedora", b"ID=fedora\nID=fedora", b"ID=$(false)",
-                     b"ID=fedora#variant", b'ID="fedora"#variant', b"ID=fedora #inline",
-                     b"ID='fedora", b"\xff", b"x" * 65537):
+        for data in (b"ID=ubuntu\nID_LIKE=arch", b"ID=debian\nID=debian", b"ID=$(false)",
+                     b"ID=debian#variant", b'ID="debian"#variant', b"ID=debian #inline",
+                     b"ID='debian", b"\xff", b"x" * 65537):
             with self.subTest(data=data[:20]), mock.patch("builtins.open", mock.mock_open(read_data=data)):
                 with self.assertRaises(provider.SnapshotFailure):
-                    provider.read_fedora_identity()
+                    provider.read_debian_identity()
 
 
 class PackageKitExecutionTests(unittest.TestCase):
@@ -12232,7 +12209,7 @@ class RegionalInterruptionTests(unittest.TestCase):
             client = provider.RegionalMutation("locale-set", "LANG=C", "a" * 64,
                 mock.Mock(), mock.Mock(), gio, GLib)
             with self.subTest(signum=signum), self.catalog("closed-pipes", signal_number=signum) as processes:
-                with mock.patch.object(provider, "read_fedora_identity"), \
+                with mock.patch.object(provider, "read_debian_identity"), \
                         self.assertRaises(provider.RegionalCommandInterrupted) as raised:
                     self.run_client(client)
                 self.assertIn("no change was sent", raised.exception.detail)
@@ -12290,7 +12267,7 @@ class RegionalInterruptionTests(unittest.TestCase):
             client.loop = types.SimpleNamespace(run=start, quit=loop.quit)
             guard = GLib.timeout_add(200, guard_stop)
             try:
-                with mock.patch.object(provider, "read_fedora_identity"), \
+                with mock.patch.object(provider, "read_debian_identity"), \
                         contextlib.redirect_stderr(io.StringIO()) as diagnostic, \
                         self.assertRaises(provider.RegionalCommandInterrupted):
                     self.run_client(client)
@@ -12654,7 +12631,7 @@ class RegionalCommandTests(unittest.TestCase):
     def invoke(self, journal, mode="success", writer=None):
         factory, generation = self.setup_client(journal, mode)
         with mock.patch.dict(os.environ, {"XDG_STATE_HOME": str(pathlib.Path(journal.chain.path).parents[1])}), \
-                mock.patch.object(provider, "read_fedora_identity", return_value={"ID": "fedora"}), \
+                mock.patch.object(provider, "read_debian_identity", return_value={"ID": "debian"}), \
                 mock.patch.object(provider, "read_boot_id", return_value=self.boot_id), \
                 mock.patch.object(provider, "RegionalMutation", side_effect=factory), \
                 mock.patch.object(provider, "RegionalRead"), \
@@ -12730,8 +12707,8 @@ class RegionalCommandTests(unittest.TestCase):
                 state = provider.load_journal_state(journal.chain)
                 self.assertEqual(state.terminals[state.handoff.slot].state, "failed")
 
-    def test_non_fedora_rejects_before_opening_journal(self):
-        with mock.patch.object(provider, "read_fedora_identity", side_effect=provider.SnapshotFailure("unsupported", "Not Fedora")), \
+    def test_non_debian_rejects_before_opening_journal(self):
+        with mock.patch.object(provider, "read_debian_identity", side_effect=provider.SnapshotFailure("unsupported", "Not Debian")), \
                 mock.patch.object(provider, "open_journal_directory") as journal, \
                 mock.patch.object(provider, "RegionalMutation") as client, \
                 contextlib.redirect_stdout(io.StringIO()) as stdout, contextlib.redirect_stderr(io.StringIO()):
@@ -12861,7 +12838,7 @@ class DelegatedOwnerTests(unittest.TestCase):
                 command.assert_not_called()
             with self.session() as (path, _chain, journal), \
                     mock.patch.dict(os.environ, {"XDG_STATE_HOME": str(path.parents[1])}), \
-                    mock.patch.object(provider, "read_fedora_identity", return_value={"ID": "fedora"}), \
+                    mock.patch.object(provider, "read_debian_identity", return_value={"ID": "debian"}), \
                     mock.patch.object(provider, "read_boot_id", return_value=self.boot_id), \
                     mock.patch.object(provider, "delegated_command", side_effect=provider.SnapshotFailure("missing-provider", "Fixture tool missing")), \
                     mock.patch.object(provider, "launch_delegated_tool") as launch, \
@@ -13717,7 +13694,7 @@ class FixtureNativeSources:
         account = provider.AccountRecord("/arbitrary/current", "current", "Current user", "fixture", True)
         self.accounts = mock.Mock(return_value=provider.AccountInventory((account,), (account.path,), account.path, "available", ()))
         self.printers = mock.Mock(return_value=provider.CupsState("available", "socket-ready", (), ()))
-        self.repositories = mock.Mock(return_value=(provider.RepositoryRow("fedora", True, "Fedora"),
+        self.repositories = mock.Mock(return_value=(provider.RepositoryRow("debian", True, "Debian"),
             provider.RepositoryRow("disabled", False, "Disabled source")))
         self.delegate = mock.Mock(return_value=(("/usr/bin/fixed-fixture",), "Fixture tool"))
         self.admission = mock.Mock()
@@ -13900,16 +13877,16 @@ class NativeSnapshotTests(unittest.TestCase):
         with self.assertRaises(provider.SnapshotFailure):
             provider.validate_snapshot_size(["account\t" + "x" * (8 * 1024 * 1024)])
 
-    def test_real_native_admission_is_fedora_gated_and_does_not_commit(self):
+    def test_real_native_admission_is_debian_gated_and_does_not_commit(self):
         fixture = RecoverySnapshotTests()
         with fixture.journal() as journal:
             before = {name: os.pread(journal.descriptor(name), provider.JOURNAL_FILE_SIZE, 0) for name in provider.JOURNAL_NAMES}
             with mock.patch.dict(os.environ, {"XDG_STATE_HOME": str(pathlib.Path(journal.chain.path).parents[1])}), \
-                    mock.patch.object(provider, "read_fedora_identity", return_value={"ID": "fedora"}) as identity:
+                    mock.patch.object(provider, "read_debian_identity", return_value={"ID": "debian"}) as identity:
                 provider.NativeSnapshotSources().admission()
                 identity.assert_called_once_with()
             self.assertEqual(before, {name: os.pread(journal.descriptor(name), provider.JOURNAL_FILE_SIZE, 0) for name in provider.JOURNAL_NAMES})
-            with mock.patch.object(provider, "read_fedora_identity", side_effect=provider.SnapshotFailure("unsupported", "Not Fedora")), \
+            with mock.patch.object(provider, "read_debian_identity", side_effect=provider.SnapshotFailure("unsupported", "Not Debian")), \
                     mock.patch.object(provider, "open_journal_directory") as open_journal:
                 with self.assertRaises(provider.SnapshotFailure):
                     provider.NativeSnapshotSources().admission()

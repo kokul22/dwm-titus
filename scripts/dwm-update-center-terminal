@@ -67,7 +67,7 @@ def set_terminal_identity(environment=None, output=None):
 
 
 PROVIDER_TITLES = {
-    "fedora": ("Update system packages", "Recover system packages"),
+    "debian": ("Update system packages", "Recover system packages"),
     "flatpak": ("Update Flatpak packages", "Recover Flatpak packages"),
     "dwm-titus": ("Update DWM-Titus", "Recover DWM-Titus"),
     "mise": ("Update mise tools", "Recover mise tools"),
@@ -392,8 +392,8 @@ def parse_operation_stream(payload, action):
             "detail": audits[0][7]}
 
 
-def fedora_restart(payload):
-    CENTER["parse_fedora_snapshot"](payload)
+def debian_restart(payload):
+    CENTER["parse_debian_snapshot"](payload)
     rows = [row for row in records(payload, "state") if len(row) == 5 and row[1] == "update-restart"]
     if len(rows) != 1:
         raise ValueError("PackageKit restart state unavailable")
@@ -415,7 +415,7 @@ def recover_packagekit(operation):
     reconciled = run_command([helper, "snapshot-updates"], stream=False)
     unresolved = records(reconciled, "active-operation") or records(reconciled, "terminal-handoff")
     state = terminal_state["state"] if terminal_state else "interrupted" if unresolved else "succeeded"
-    restart = fedora_restart(reconciled)
+    restart = debian_restart(reconciled)
     if state == "interrupted" and terminal_state is not None:
         expected = [terminal_state["operation"], protocol_action,
                     "update" if protocol_action == "updates-install-all" else "refresh"]
@@ -425,7 +425,7 @@ def recover_packagekit(operation):
             # Its audit remains in PackageKit's journal; this is not success evidence.
             run_command([helper, "ack-operation", terminal_state["operation"]], stream=False)
             acknowledged = run_command([helper, "snapshot-updates"], stream=False)
-            restart = fedora_restart(acknowledged)
+            restart = debian_restart(acknowledged)
             if not records(acknowledged, "active-operation") and not records(acknowledged, "terminal-handoff"):
                 return result("unknown", "failed", "PackageKit state refreshed and interrupted result acknowledged; "
                               "the previous update outcome remains unknown. " + terminal_state["detail"], restart)
@@ -443,7 +443,7 @@ def recover_packagekit(operation):
 
 def trusted_native_command(path):
     """Validate every directory and symlink hop of a fixed system executable."""
-    if path not in {"/usr/bin/dnf5", "/usr/bin/sudo"}:
+    if path not in {"/usr/bin/apt-get", "/usr/bin/sudo"}:
         raise PermissionError("Native command is not allowlisted")
     root = os.lstat("/")
     if root.st_uid != 0 or root.st_mode & 0o022 or not stat.S_ISDIR(root.st_mode):
@@ -483,48 +483,48 @@ def trusted_native_command(path):
     return str(current)
 
 
-def execute_fedora(operation, action):
+def execute_debian(operation, action):
     if action == "recover":
         receipt = CENTER["active_operation"]()
         if receipt is None or receipt["operation"] != operation:
-            raise ValueError("Fedora recovery does not own the active reservation")
-        if receipt["recovery_provider_phase"] != "fedora-dnf":
+            raise ValueError("Debian recovery does not own the active reservation")
+        if receipt["recovery_provider_phase"] != "debian-apt":
             return recover_packagekit(operation)
-        # Recover is an explicit retry, with DNF's native lock and fresh
+        # Recover is an explicit retry, with APT's native lock and fresh
         # interactive plan/confirmation. It never claims rollback or that the
         # previous transaction succeeded.
-        print_step("Previous DNF outcome is unknown; retrying with a fresh native transaction plan")
-        CENTER["update_operation"](operation, phase="preparing", provider_phase="fedora-dnf",
-                                   detail="Checking PackageKit before explicit native DNF retry")
+        print_step("Previous APT outcome is unknown; retrying with a fresh native transaction plan")
+        CENTER["update_operation"](operation, phase="preparing", provider_phase="debian-apt",
+                                   detail="Checking PackageKit before explicit APT retry")
     else:
-        checkpoint(operation, "preparing", "Checking for unfinished PackageKit work before DNF")
+        checkpoint(operation, "preparing", "Checking for unfinished PackageKit work before APT")
     helper = str(CENTER_PATH.with_name("dwm-system-management"))
     initial = run_command([helper, "snapshot-updates"], stream=False, timeout=60)
-    CENTER["parse_fedora_snapshot"](initial)
+    CENTER["parse_debian_snapshot"](initial)
     if records(initial, "active-operation") or records(initial, "terminal-handoff"):
         return result("unknown", "interrupted",
-                      "An existing PackageKit operation requires recovery before native DNF can start. "
-                      "Open Settings > System > Fedora updates to finish or acknowledge that operation, then retry here.", "unknown")
+                      "An existing PackageKit operation requires recovery before APT can start. "
+                      "Open Settings > System > system updates to finish or acknowledge that operation, then retry here.", "unknown")
     recovery = [row for row in records(initial, "provider") if row[1] == "recovery"]
     if len(recovery) != 1 or recovery[0][2] != "available":
         raise ValueError("Authoritative PackageKit recovery state is unavailable")
-    dnf = trusted_native_command("/usr/bin/dnf5")
+    apt = trusted_native_command("/usr/bin/apt-get")
     sudo = trusted_native_command("/usr/bin/sudo")
-    print_step("Starting native DNF; review its transaction and confirmation below")
-    CENTER["update_operation"](operation, phase="fedora-executing", provider_phase="fedora-dnf",
-                               detail="Native DNF owns the terminal")
-    # Inherit all three terminal descriptors: preserve native progress, scripts,
-    # interactive authorization and transaction confirmation without output caps
-    # or a timeout that could kill a frontend while privileged work continues.
-    status = subprocess.call([sudo, "--", dnf, "--setopt=exit_on_lock=True", "--setopt=assumeyes=False",
-                              "--setopt=assumeno=False", "--refresh", "upgrade"], cwd="/")
+    print_step("Refreshing APT package metadata")
+    CENTER["update_operation"](operation, phase="debian-apt", provider_phase="debian-apt",
+                               detail="APT owns the terminal")
+    # Keep native APT progress and its interactive package confirmation visible.
+    status = subprocess.call([sudo, "--", apt, "-o", "Dpkg::Use-Pty=1", "update"], cwd="/")
+    if status == 0:
+        print_step("Reviewing the APT upgrade plan and confirmation below")
+        status = subprocess.call([sudo, "--", apt, "-o", "Dpkg::Use-Pty=1", "upgrade"], cwd="/")
     if status < 0:
-        return result("unknown", "interrupted", "Native DNF was interrupted; review its transaction before retrying.", "unknown")
+        return result("unknown", "interrupted", "APT was interrupted; review its transaction before retrying.", "unknown")
     if status:
-        return result("unknown", "failed", "Native DNF exited with status " + str(status) +
+        return result("unknown", "failed", "APT exited with status " + str(status) +
                       "; review its output. Closing this terminal releases the reservation; "
                       "no successful transaction is claimed.", "unknown")
-    return result("succeeded", "completed", "Native DNF completed successfully; review its output for restart guidance.", "unknown")
+    return result("succeeded", "completed", "APT completed successfully; review its output for restart guidance.", "unknown")
 
 
 def desktop_value(payload):
@@ -692,11 +692,11 @@ def execute_mise(operation, action):
 def execute_provider(operation, provider, action):
     if not OPERATION_PATTERN.fullmatch(operation) or provider not in PROVIDERS or action not in {"update", "recover"}:
         raise ValueError("invalid terminal operation")
-    # Fedora has its own visible, bounded authoritative preflight below.
+    # APT has its own visible, bounded authoritative preflight below.
     # Repeating discovery here hides a full scan before the first progress line.
-    if provider != "fedora":
+    if provider != "debian":
         validate_provider_action(provider, action)
-    return {"fedora": execute_fedora, "dwm-titus": execute_desktop,
+    return {"debian": execute_debian, "dwm-titus": execute_desktop,
             "flatpak": execute_flatpak, "mise": execute_mise}[provider](operation, action)
 
 

@@ -52,12 +52,11 @@ def git_arguments(args):
 def package_family():
     release = Path("/etc/os-release").read_text()
     identity = re.search(r'^ID=["\']?([^"\'\n]+)', release, re.M)
-    version = re.search(r'^VERSION_ID=["\']?([^"\'\n]+)', release, re.M)
-    if identity and identity.group(1) == "fedora":
-        return "fedora"
-    if identity and identity.group(1) == "debian" and version and version.group(1) == "13":
-        return "debian13"
-    raise RuntimeError("Desktop updates support Fedora and Debian 13 only")
+    like = re.search(r'^ID_LIKE=["\']?([^"\'\n]+)', release, re.M)
+    ids = {identity.group(1) if identity else "", *(like.group(1).split() if like else [])}
+    if ids.intersection({"debian", "ubuntu"}):
+        return "debian"
+    raise RuntimeError("Desktop updates support Debian based distributions only")
 
 
 def run(args, cwd=None, timeout=60, capture=True, pass_fds=()):
@@ -735,14 +734,9 @@ def missing_packages(packages):
     family = package_family()
     missing = []
     for package in packages:
-        if family == "fedora":
-            installed = subprocess.run(["rpm", "-q", "--quiet", "--", package],
-                                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                                       timeout=10).returncode == 0
-        else:
-            result = subprocess.run(["dpkg-query", "-W", "-f=${db:Status-Status}", "--", package],
-                                    capture_output=True, text=True, timeout=10)
-            installed = result.returncode == 0 and result.stdout.strip() == "installed"
+        result = subprocess.run(["dpkg-query", "-W", "-f=${db:Status-Status}", "--", package],
+                               capture_output=True, text=True, timeout=10)
+        installed = result.returncode == 0 and result.stdout.strip() == "installed"
         if not installed:
             missing.append(package)
     return missing
@@ -924,7 +918,7 @@ def install_dependencies():
                     repair_args = ["keep-terminal"]
             except (OSError, subprocess.TimeoutExpired):
                 pass
-            package_manager = "DNF" if package_family() == "fedora" else "APT"
+            package_manager = "APT"
             print(f"Install missing desktop dependencies. Review and confirm {package_manager}'s package transaction.", flush=True)
             # The privileged helper bounds each map/package-manager operation. Wait for
             # its final exit, including both transactions, so this lock cannot

@@ -169,7 +169,7 @@ class DesktopUpdate(unittest.TestCase):
 
 
     def test_debian_missing_packages_uses_dpkg_and_requires_installed_status(self):
-        with patch.object(update, "package_family", return_value="debian13"), \
+        with patch.object(update, "package_family", return_value="debian"), \
                 patch.object(update.subprocess, "run", side_effect=[
                     SimpleNamespace(returncode=0, stdout="installed"),
                     SimpleNamespace(returncode=0, stdout="config-files")]) as query:
@@ -184,11 +184,12 @@ class DesktopUpdate(unittest.TestCase):
         with patch.object(privileged.shutil, "which", return_value=None):
             self.assertFalse(privileged.supported_terminal_installed())
 
-    def test_package_family_accepts_only_fedora_or_debian_13(self):
-        with patch.object(privileged.Path, "read_text", return_value='ID=debian\nVERSION_ID="13"\n'):
-            self.assertEqual(privileged.package_family(), "debian13")
-        with patch.object(privileged.Path, "read_text", return_value='ID=debian\nVERSION_ID="12"\n'):
-            with self.assertRaisesRegex(RuntimeError, "support Fedora and Debian 13 only"):
+    def test_package_family_accepts_debian_based_ids_only(self):
+        for identity in ('ID=debian\nVERSION_ID="13"\n', 'ID=ubuntu\nID_LIKE=debian\n'):
+            with patch.object(privileged.Path, "read_text", return_value=identity):
+                self.assertEqual(privileged.package_family(), "debian")
+        with patch.object(privileged.Path, "read_text", return_value='ID=arch\nID_LIKE="arch"\n'):
+            with self.assertRaisesRegex(RuntimeError, "Debian based distributions only"):
                 privileged.package_family()
 
     def test_supported_terminal_detection_user_local(self):
@@ -200,16 +201,8 @@ class DesktopUpdate(unittest.TestCase):
         with patch.object(privileged.pwd, "getpwuid", return_value=SimpleNamespace(pw_dir=str(self.base))):
             self.assertTrue(privileged.supported_terminal_installed(1000))
 
-    def test_install_packages_passes_skip_unavailable(self):
-        with patch.object(privileged, "package_family", return_value="fedora"), \
-                patch.object(privileged.subprocess, "run", side_effect=[SimpleNamespace(returncode=1), SimpleNamespace(returncode=0)]) as dnf_run:
-            privileged.install_packages(["alacritty"], interactive=True, skip_unavailable=True)
-            dnf_run.assert_called_with(["/usr/bin/dnf", "install", "--skip-unavailable", "--", "alacritty"],
-                                       check=True, env={"PATH": "/usr/bin:/bin", "HOME": "/root", "LANG": "C.UTF-8"},
-                                       stdin=None, cwd="/", timeout=1800)
-
     def test_debian_privileged_install_uses_apt_and_ignores_config_only_packages(self):
-        with patch.object(privileged, "package_family", return_value="debian13"), \
+        with patch.object(privileged, "package_family", return_value="debian"), \
                 patch.object(privileged.subprocess, "run", side_effect=[
                     SimpleNamespace(returncode=0, stdout="installed"),
                     SimpleNamespace(returncode=0, stdout="config-files"),
@@ -223,7 +216,7 @@ class DesktopUpdate(unittest.TestCase):
                          ["/usr/bin/apt-get", "install", "-y", "--", "beta"])
 
     def test_debian_interactive_install_keeps_apt_confirmation_prompt(self):
-        with patch.object(privileged, "package_family", return_value="debian13"), \
+        with patch.object(privileged, "package_family", return_value="debian"), \
                 patch.object(privileged.subprocess, "run", side_effect=[
                     SimpleNamespace(returncode=1), SimpleNamespace(returncode=0)]) as apt_run:
             privileged.install_packages(["beta"], interactive=True)
@@ -231,19 +224,12 @@ class DesktopUpdate(unittest.TestCase):
                          ["/usr/bin/apt-get", "install", "--", "beta"])
         self.assertIsNone(apt_run.call_args_list[1].kwargs["stdin"])
 
-    def test_shared_provider_policy_detection(self):
-        policy = "example-package\tvirtual-provider\t-\n"
-        with patch.object(privileged, "package_family", return_value="fedora"), \
-                patch.object(privileged.subprocess, "run", side_effect=[SimpleNamespace(stdout=policy), SimpleNamespace(returncode=0)]) as probe:
-            self.assertEqual(privileged.installed_provider_packages(Path("/trusted/map")), {"example-package"})
-            self.assertEqual(probe.call_args.args[0], ["/usr/bin/rpm", "-q", "--whatprovides", "virtual-provider"])
-
     def test_mutating_start_rejects_contended_lock(self):
         with update.locked(self.state), patch.object(sys, "argv", ["dwm-desktop-update", "start", "a" * 40]), self.assertRaisesRegex(RuntimeError, "Desktop operation is busy"):
             update.main()
 
     def test_dependency_repair_profiles_and_power_profiles_filtering(self):
-        package_family_patch = patch.object(privileged, "package_family", return_value="fedora")
+        package_family_patch = patch.object(privileged, "package_family", return_value="debian")
         package_family_patch.start()
         self.addCleanup(package_family_patch.stop)
         mapping = self.base / "bin/dwm-packages.sh"
@@ -272,7 +258,7 @@ class DesktopUpdate(unittest.TestCase):
                 patch.object(privileged, "trusted"), \
                 patch.object(privileged.sys.stdin, "isatty", return_value=True), \
                 patch.object(privileged, "supported_terminal_installed", return_value=False), \
-                patch.object(privileged, "package_family", return_value="fedora"), \
+                patch.object(privileged, "package_family", return_value="debian"), \
                 patch.object(privileged, "installed_provider_packages", return_value={"power-profiles-daemon"}), \
                 patch.object(privileged, "install_packages", side_effect=mock_install):
             privileged.perform(["repair-dependencies", generation], 1000)
@@ -301,7 +287,7 @@ class DesktopUpdate(unittest.TestCase):
                 patch.object(privileged, "trusted"), \
                 patch.object(privileged.sys.stdin, "isatty", return_value=True), \
                 patch.object(privileged, "supported_terminal_installed", return_value=True), \
-                patch.object(privileged, "package_family", return_value="fedora"), \
+                patch.object(privileged, "package_family", return_value="debian"), \
                 patch.object(privileged, "installed_provider_packages", return_value=set()), \
                 patch.object(privileged, "install_packages", side_effect=mock_install):
             privileged.perform(["repair-dependencies", generation], 1000)
@@ -329,15 +315,15 @@ class DesktopUpdate(unittest.TestCase):
                 patch.object(privileged, "trusted"), \
                 patch.object(privileged.sys.stdin, "isatty", return_value=True), \
                 patch.object(privileged, "supported_terminal_installed", return_value=True), \
-                patch.object(privileged, "package_family", return_value="fedora"), \
+                patch.object(privileged, "package_family", return_value="debian"), \
                 patch.object(privileged, "installed_provider_packages", return_value=set()), \
-                patch.object(privileged, "installed_provider_packages", return_value={"xorg-x11-server-Xorg"}), \
+                patch.object(privileged, "installed_provider_packages", return_value={"xserver-xorg-core"}), \
                 patch.object(privileged, "install_packages", side_effect=mock_install):
             privileged.perform(["repair-dependencies", generation], 1000)
 
         self.assertEqual(len(calls), 2)
         req_pkgs, _, _ = calls[0]
-        self.assertNotIn("xorg-x11-server-Xorg", req_pkgs)
+        self.assertNotIn("xserver-xorg-core", req_pkgs)
 
         # Case 4: No X server installed
         calls.clear()
@@ -346,7 +332,7 @@ class DesktopUpdate(unittest.TestCase):
                 patch.object(privileged, "trusted"), \
                 patch.object(privileged.sys.stdin, "isatty", return_value=True), \
                 patch.object(privileged, "supported_terminal_installed", return_value=True), \
-                patch.object(privileged, "package_family", return_value="fedora"), \
+                patch.object(privileged, "package_family", return_value="debian"), \
                 patch.object(privileged, "installed_provider_packages", return_value=set()), \
                 patch.object(privileged, "installed_provider_packages", return_value=set()), \
                 patch.object(privileged, "install_packages", side_effect=mock_install):
@@ -354,7 +340,7 @@ class DesktopUpdate(unittest.TestCase):
 
         self.assertEqual(len(calls), 2)
         req_pkgs, _, _ = calls[0]
-        self.assertIn("xorg-x11-server-Xorg", req_pkgs)
+        self.assertIn("xserver-xorg-core", req_pkgs)
 
 
         # Caller-selected custom terminal must not force terminal-primary
@@ -1248,7 +1234,7 @@ class DesktopUpdate(unittest.TestCase):
                 privileged.validate_candidate(candidate, self.manifest)
 
     def test_package_plan_rejects_flags_urls_and_capability_expressions(self):
-        for packages in (["-y"], ["https://example.test/a.rpm"], ["local.rpm"], ["name >= 1"], ["x", "x"], "gcc", [1]):
+        for packages in (["-y"], ["https://example.test/a.deb"], ["local.deb"], ["name >= 1"], ["x", "x"], "gcc", [1]):
             with self.subTest(packages=packages), self.assertRaises(RuntimeError):
                 privileged.validate_packages(packages)
 

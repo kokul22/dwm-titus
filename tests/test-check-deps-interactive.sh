@@ -7,11 +7,11 @@ CHECK_DEPS="$REPO_DIR/scripts/check-deps.sh"
 work=$(mktemp -d "${TMPDIR:-/tmp}/test-check-deps.XXXXXX")
 trap 'rm -rf -- "$work"' EXIT
 
-cat >"$work/fedora-os-release" <<'EOF'
-ID=fedora
+cat >"$work/debian-os-release" <<'EOF'
+ID=debian
 VERSION_ID=45
 EOF
-export DWM_TEST_MODE=1 DWM_OS_RELEASE="$work/fedora-os-release"
+export DWM_TEST_MODE=1 DWM_OS_RELEASE="$work/debian-os-release"
 
 mkdir -p "$work/bin" "$work/home" "$work/checker"
 # Keep source-tree siblings and the invoking user's installed helpers out of fixtures.
@@ -54,12 +54,12 @@ for tool in bash sh dirname pwd printf echo grep awk cat sed cut tr rm paste chm
 	[ -n "$cmd_path" ] && ln -sf "$cmd_path" "$work/bin/$tool"
 done
 
-# Mock rpm
-cat >"$work/bin/rpm" <<'SH'
+# Mock dpkg-query
+cat >"$work/bin/dpkg-query" <<'SH'
 #!/bin/sh
 exit 0
 SH
-chmod +x "$work/bin/rpm"
+chmod +x "$work/bin/dpkg-query"
 
 # 1. Non-interactive mode when all dependencies satisfied
 output=$(env HOME="$work/home" PATH="$work/bin" \

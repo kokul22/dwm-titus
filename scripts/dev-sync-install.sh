@@ -161,10 +161,10 @@ source_update_dependencies_ready() {
 			command -v bwrap >/dev/null 2>&1 &&
 			/usr/bin/python3 -c 'import ctypes; ctypes.CDLL("libseccomp.so.2")' >/dev/null 2>&1 || return 1
 	fi
-	"$repo_dir/scripts/dwm-packages.sh" fedora "$dependency_profile" >"$work/source-update-packages" || return 1
+	"$repo_dir/scripts/dwm-packages.sh" debian "$dependency_profile" >"$work/source-update-packages" || return 1
 	while IFS= read -r package; do
 		[ -n "$package" ] || continue
-		rpm -q "$package" >/dev/null 2>&1 || return 1
+		dpkg-query -W -f='${db:Status-Status}' -- "$package" 2>/dev/null | grep -qx installed || return 1
 	done <"$work/source-update-packages"
 }
 
@@ -180,7 +180,7 @@ source_update_dependencies_needed() {
 	command -v quickshell >/dev/null 2>&1
 }
 
-require_fedora_for_package_changes() {
+require_debian_for_package_changes() {
 	distro_id=$(awk -F= '
 		$1 == "ID" {
 			value = $2
@@ -190,7 +190,7 @@ require_fedora_for_package_changes() {
 		}
 	' "$os_release_file" 2>/dev/null) ||
 		die "cannot read $os_release_file before installing source-update dependencies"
-	[ "$distro_id" = fedora ] ||
+	[ "$distro_id" = debian ] ||
 		die "unsupported distribution for source-update dependencies: ${distro_id:-unknown}"
 }
 
@@ -208,10 +208,10 @@ reconcile_source_update_dependencies() {
 	fi
 	command -v sudo >/dev/null 2>&1 ||
 		die "sudo is required to install source-update dependencies"
-	command -v dnf >/dev/null 2>&1 ||
-		die "dnf is required to install source-update dependencies"
-	require_fedora_for_package_changes
-	"$repo_dir/scripts/dwm-packages.sh" fedora "$source_update_profile" >"$packages_file" ||
+	command -v apt-get >/dev/null 2>&1 ||
+		die "apt-get is required to install source-update dependencies"
+	require_debian_for_package_changes
+	"$repo_dir/scripts/dwm-packages.sh" debian "$source_update_profile" >"$packages_file" ||
 		die "could not resolve source-update dependencies"
 	set --
 	while IFS= read -r package; do
@@ -219,7 +219,7 @@ reconcile_source_update_dependencies() {
 	done <"$packages_file"
 	[ "$#" -gt 0 ] || die "source-update dependency profile is empty"
 	note "Installing required source-update dependencies: $*"
-	sudo dnf install -y "$@"
+	sudo apt-get install -y -- "$@"
 	source_update_dependencies_ready "$source_update_profile" ||
 		die "source-update dependencies are still unavailable after installation"
 }

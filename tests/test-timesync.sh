@@ -4,7 +4,7 @@ repo=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 mkdir "$work/bin"
-printf 'ID=fedora\n' >"$work/os-release"
+printf 'ID=debian\n' >"$work/os-release"
 export DWM_TEST_MODE=1 DWM_OS_RELEASE="$work/os-release"
 export PATH="$work/bin:$PATH" TIMESYNC_LOG="$work/log"
 cat >"$work/bin/systemctl" <<'MOCK'
@@ -75,15 +75,10 @@ if run; then
 fi
 unset FAIL_MUTATION
 printf 'ID=debian\n' >"$DWM_OS_RELEASE"
+printf 'ID=arch\n' >"$DWM_OS_RELEASE"
 if run; then
-	echo 'Non-Fedora provisioning must fail' >&2
+	echo 'Unsupported provisioning must fail' >&2
 	exit 1
 fi
 [[ ! -s $TIMESYNC_LOG ]]
-"$repo/scripts/dwm-packages.sh" fedora runtime-required | grep -Fx systemd-udev >/dev/null
-for ks in dwm-fedora.ks dwm-fedora-nvidia.ks; do
-	grep -Fxq systemd-udev "$repo/$ks"
-	grep -Fxq -- -chrony "$repo/$ks"
-	grep -Fq 'services --enabled=NetworkManager,systemd-timesyncd' "$repo/$ks"
-done
 printf 'Automatic time synchronization provisioning checks passed.\n'

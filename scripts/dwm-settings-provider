@@ -27,10 +27,8 @@ os_value() {
 }
 
 platform_family() {
-	id=$1
-
-	case "$id" in
-	fedora) printf '%s\n' fedora ;;
+	case " $1 " in
+	*" debian "*|*" ubuntu "*) printf '%s\n' debian ;;
 	*) printf '%s\n' unknown ;;
 	esac
 }
@@ -599,13 +597,15 @@ discover() {
 	os_release=${DWM_SETTINGS_OS_RELEASE:-/etc/os-release}
 	platform_id=unknown
 	platform_pretty='Unknown Linux'
+	platform_like=''
 	if [ -r "$os_release" ]; then
 		platform_id=$(os_value ID "$os_release")
 		platform_pretty=$(os_value PRETTY_NAME "$os_release")
+		platform_like=$(os_value ID_LIKE "$os_release")
 		[ -n "$platform_id" ] || platform_id=unknown
 		[ -n "$platform_pretty" ] || platform_pretty=$platform_id
 	fi
-	platform_family_name=$(platform_family "$platform_id")
+	platform_family_name=$(platform_family "$platform_id $platform_like")
 
 	printf 'settings-protocol\t1\n'
 	printf 'platform\t%s\t%s\t%s\n' \
@@ -749,7 +749,7 @@ discover() {
 		emit_capability system authorization 'Administrative authorization' restricted privileged polkit \
 			'Read-only state remains available; install the trusted system helper for authorized actions'
 	fi
-	emit_capability system administration 'Advanced administration' unsupported delegated fedora-tools \
+	emit_capability system administration 'Advanced administration' unsupported delegated debian-tools \
 		'High-risk administration remains delegated to trusted tools'
 }
 

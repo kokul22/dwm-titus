@@ -17,14 +17,12 @@ concurrency:
 
 jobs:
   validate:
-    name: Desktop smoke (Fedora ${{ matrix.fedora }})
+    name: Desktop smoke (Debian 13)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     strategy:
       fail-fast: false
-      matrix:
-        fedora: [45, 44]
-    container: fedora:${{ matrix.fedora }}
+    container: debian:trixie
     defaults:
       run:
         shell: bash
@@ -33,7 +31,10 @@ jobs:
 
     steps:
       - name: Install checkout dependency
-        run: dnf install -y --setopt=install_weak_deps=False git-core
+        run: |
+          echo "deb http://deb.debian.org/debian trixie-backports main" >> /etc/apt/sources.list
+          apt-get update
+          apt-get install -y git-core
 
       - uses: actions/checkout@v7
         with:
@@ -42,8 +43,8 @@ jobs:
       - name: Install build and smoke dependencies
         run: |
           source scripts/dwm-packages.sh
-          mapfile -t packages < <(dwm_packages fedora ci-smoke)
-          dnf install -y --setopt=install_weak_deps=False "${packages[@]}"
+          mapfile -t packages < <(dwm_packages debian ci-smoke)
+          apt-get install -y --no-install-recommends "${packages[@]}"
 
       - name: Build dwm
         run: |

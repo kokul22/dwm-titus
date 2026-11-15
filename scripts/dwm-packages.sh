@@ -1,261 +1,106 @@
 #!/usr/bin/env bash
-# Shared package capability map for dwm-titus installers and diagnostics.
-
-# Resolve the image override first, then installer detection, then host identity.
-dwm_fedora_release() {
-	if [[ -n ${DWM_IMAGE_FEDORA_RELEASE:-} ]]; then
-		printf '%s\n' "$DWM_IMAGE_FEDORA_RELEASE"
-	elif [[ -n ${VERSION_ID:-} ]]; then
-		printf '%s\n' "$VERSION_ID"
-	else
-		(
-			# shellcheck disable=SC1091
-			source /etc/os-release
-			printf '%s\n' "${VERSION_ID:-}"
-		)
-	fi
-}
+# Shared Debian package capability map for installers and diagnostics.
 
 dwm_packages() {
 	local family=$1
 	local profile=$2
 
 	case "$family:$profile" in
-	fedora:provider-policy)
-		# package, virtual capability, alternative executable commands
-		printf '%s\n' $'power-profiles-daemon\tppd-service\t-' $'xorg-x11-server-Xorg\txserver\tXorg,Xlibre'
-		;;
-	debian13:provider-policy)
+	debian:provider-policy)
 		printf '%s\n' $'xserver-xorg-core\txserver\tXorg'
 		;;
-	debian13:build)
+	debian:build)
 		printf '%s\n' build-essential pkg-config libx11-dev libxft-dev libxinerama-dev \
 			libxrender-dev libimlib2-dev libxcb1-dev libxcb-res0-dev libfontconfig1-dev libfreetype-dev
 		;;
-	debian13:ci-smoke)
+	debian:ci-smoke)
 		dwm_packages "$family" build
 		printf '%s\n' quickshell python3 dbus-daemon util-linux procps \
 			xvfb xdotool x11-utils x11-xserver-utils xsettingsd jq inotify-tools \
-			fonts-noto-core setxkbmap xkb-data xinput x11-utils
+			fonts-noto-core xkb-data xinput x11-utils
 		;;
-	debian13:x11)
+	debian:x11)
 		printf '%s\n' xserver-xorg-core xinit x11-xserver-utils x11-xkb-utils xinput xkbset
 		;;
-	debian13:runtime-required)
+	debian:runtime-required)
 		printf '%s\n' dbus-x11 curl git procps psmisc unzip util-linux xclip xdotool \
 			x11-utils xdg-utils gnome-keyring libpam-gnome-keyring
 		;;
-	debian13:keyring)
+	debian:keyring)
 		printf '%s\n' gnome-keyring libpam-gnome-keyring
 		;;
-	debian13:desktop)
+	debian:desktop)
 		# DWM session services and the managed Quickshell shell. Quickshell is
 		# published in Debian 13 backports; users need that suite enabled.
 		printf '%s\n' quickshell thunar picom python3 feh dex mate-polkit xsettingsd \
 			bubblewrap libseccomp2 alsa-utils brightnessctl dbus-bin inotify-tools jq \
-			pulseaudio-utils pipewire pipewire-pulse wireplumber libnotify-bin \
+			pulseaudio-utils pipewire pipewire-pulse wireplumber libnotify-bin power-profiles-daemon systemd-timesyncd \
 			light-locker xserver-xorg-input-libinput bluez blueman playerctl upower \
 			flatpak xdg-desktop-portal-gtk network-manager-gnome
 		;;
-	debian13:source-update)
+	debian:source-update)
 		printf '%s\n' xsettingsd xkbset bubblewrap libseccomp2
 		dwm_packages "$family" keyring
 		;;
-	debian13:theme)
+	debian:theme)
 		printf '%s\n' dconf-gsettings-backend adwaita-icon-theme papirus-icon-theme
 		;;
-	debian13:theme-gtk)
+	debian:theme-gtk)
 		printf '%s\n' arc-theme yaru-theme-gtk yaru-theme-icon
 		;;
-	debian13:theme-optional)
+	debian:theme-optional)
 		printf '%s\n' qt6ct qt5ct
 		;;
-	debian13:fonts)
+	debian:fonts)
 		printf '%s\n' fonts-noto-color-emoji fonts-noto-mono
 		;;
-	debian13:lightdm)
-		printf '%s\n' lightdm slick-greeter
+	debian:qml-development)
+		printf '%s\n' qt6-declarative-dev qt6-declarative-dev-tools
 		;;
-	debian13:terminal)
-		printf '%s\n' alacritty kitty
-		;;
-	debian13:terminal-primary)
-		printf '%s\n' alacritty
-		;;
-	debian13:screenshot-optional)
-		printf '%s\n' maim
-		;;
-	debian13:required)
-		dwm_packages "$family" build
-		dwm_packages "$family" x11
-		dwm_packages "$family" runtime-required
-		;;
-	debian13:recommended)
-		dwm_packages "$family" desktop
-		dwm_packages "$family" screenshot-optional
-		dwm_packages "$family" theme
-		dwm_packages "$family" theme-gtk
-		dwm_packages "$family" fonts
-		;;
-	debian13:optional)
-		dwm_packages "$family" theme-optional
-		;;
-	debian13:full)
-		dwm_packages "$family" required
-		dwm_packages "$family" recommended
-		dwm_packages "$family" optional
-		;;
-	fedora:build)
-		printf '%s\n' \
-			gcc make pkgconf-pkg-config libX11-devel libXft-devel \
-			libXinerama-devel libXrender-devel imlib2-devel libxcb-devel \
-			xcb-util-devel freetype-devel fontconfig-devel
-		;;
-	fedora:ci-smoke)
-		dwm_packages "$family" build
-		printf '%s\n' quickshell python3 dbus-daemon util-linux procps-ng \
-			xorg-x11-server-Xvfb xdotool xprop xrandr xset xsettingsd \
-			jq inotify-tools gawk google-noto-sans-fonts setxkbmap xkbcomp xmodmap xinput xwininfo
-		;;
-	fedora:image-build)
-		printf '%s\n' xorriso mtools rsync squashfs-tools-ng isomd5sum diffutils python3-pillow fontconfig google-noto-sans-fonts
-		;;
-	fedora:image-factory)
-		dwm_packages "$family" image-build
-		printf '%s\n' qemu-system-x86 qemu-img edk2-ovmf libguestfs pykickstart xz zstd time
-		;;
-	fedora:image-boot)
-		printf '%s\n' tar dracut-network grub2-pc grub2-pc-modules grub2-efi-x64 shim-x64 \
-			lvm2 cryptsetup btrfs-progs xfsprogs e2fsprogs mdadm dosfstools
-		;;
-	fedora:image-desktop)
-		# Dedicated image defaults; existing-system installs retain user choices.
-		printf '%s\n' brave-origin fastfetch python3-libdnf5
-		;;
-	fedora:media)
-		printf '%s\n' celluloid mpv sxiv python3 desktop-file-utils
-		;;
-	fedora:x11)
-		printf '%s\n' xorg-x11-server-Xorg xorg-x11-xinit xrandr xset xsetroot xinput setxkbmap xkbset
-		;;
-	fedora:runtime-required)
-		# Fedora packages systemd-timesyncd.service in systemd-udev.
-		printf '%s\n' systemd-udev dbus-x11 curl git procps-ng psmisc unzip util-linux xclip xdotool xprop xdg-utils
-		dwm_packages "$family" keyring
-		;;
-	fedora:keyring)
-		# The daemon alone cannot unlock the login keyring through PAM.
-		printf '%s\n' gnome-keyring gnome-keyring-pam
-		;;
-	fedora:desktop)
-		# Fedora 44 and 45 publish the compatible Quickshell snapshot in its official
-		# fedora/updates repositories. It is required and belongs in the strict
-		# desktop transaction; the Fedora package-map check proves availability.
-		printf '%s\n' \
-			quickshell Thunar picom python3 feh dex-autostart mate-polkit xsettingsd bubblewrap libseccomp \
-			alsa-utils brightnessctl dbus-tools inotify-tools jq pulseaudio-utils pipewire pavucontrol \
-			pipewire-pulseaudio wireplumber libnotify light-locker xorg-x11-drv-libinput \
-			bluez blueman playerctl upower power-profiles-daemon flatpak xdg-desktop-portal-gtk \
-			nm-connection-editor
-		;;
-	fedora:system-management)
-		printf '%s\n' \
-			PackageKit PackageKit-glib python3-gobject python3-rpm accountsservice cups \
-			system-config-printer
-		;;
-	fedora:system-management-optional)
-		printf '%s\n' lxqt-admin dnfdragora
-		;;
-	fedora:source-update)
-		# Dependencies introduced after the initial installation that the supported
-		# source-checkout synchronization path must reconcile for existing systems.
-		printf '%s\n' xsettingsd xkbset bubblewrap libseccomp
-		dwm_packages "$family" wifi
-		dwm_packages "$family" keyring
-		;;
-	fedora:wifi)
-		# Explicit image/update contract; do not depend on weak RPM dependencies.
-		printf '%s\n' NetworkManager NetworkManager-wifi wpa_supplicant wireless-regdb
-		;;
-	fedora:desktop-optional)
-		# Path: https://github.com/ChrisTitusTech/Path, packaged in
-		# christitustech/copr-fedora; skip when that repository is unavailable.
-		if [[ $(dwm_fedora_release) != 45 ]]; then
-			printf '%s\n' path
-		fi
-		printf '%s\n' \
-			gvfs gvfs-smb tumbler thunar-archive-plugin file-roller \
-			xdg-user-dirs rsync
-		dwm_packages "$family" wifi
-		;;
-	fedora:gaming)
-		if [[ ${ARCH:-$(uname -m)} == x86_64 ]]; then
-			printf '%s\n' \
-				steam gamescope gamemode.x86_64 gamemode.i686 \
-				mangohud.x86_64 mangohud.i686
-		fi
-		;;
-	fedora:theme)
-		printf '%s\n' dconf adwaita-icon-theme papirus-icon-theme
-		;;
-	fedora:theme-gtk)
-		printf '%s\n' \
-			arc-theme adw-gtk3-theme yaru-gtk3-theme yaru-gtk4-theme bluebird-gtk3-theme
-		# Retired Fedora 45 RPMs remain available to Fedora 44 images/installers.
-		if [[ $(dwm_fedora_release) != 45 ]]; then
-			printf '%s\n' numix-gtk-theme deepin-gtk-theme
-		fi
-		;;
-	fedora:theme-optional)
-		printf '%s\n' qt6ct qt5ct
-		;;
-	fedora:fonts)
-		printf '%s\n' google-noto-color-emoji-fonts google-noto-sans-mono-fonts
-		;;
-	fedora:qml-development)
-		printf '%s\n' qt6-qtdeclarative-devel
-		;;
-	fedora:qml-validation)
+	debian:qml-validation)
 		printf '%s\n' quickshell xsettingsd
 		dwm_packages "$family" qml-development
 		;;
-	fedora:lightdm)
+	debian:lightdm)
 		printf '%s\n' lightdm slick-greeter
 		;;
-	fedora:terminal)
+	debian:terminal)
 		printf '%s\n' alacritty kitty
 		;;
-	fedora:terminal-primary)
+	debian:terminal-primary)
 		printf '%s\n' alacritty
 		;;
-	fedora:screenshot-optional)
+	debian:screenshot-optional)
 		printf '%s\n' maim
 		;;
-	fedora:required)
+	debian:media)
+		printf '%s\n' celluloid mpv sxiv python3 desktop-file-utils
+		;;
+	debian:system-management)
+		printf '%s\n' packagekit packagekit-tools libpackagekit-glib2-18 python3-gi python3-apt accountsservice cups system-config-printer
+		;;
+	debian:required)
 		dwm_packages "$family" build
 		dwm_packages "$family" x11
 		dwm_packages "$family" runtime-required
 		dwm_packages "$family" media
 		;;
-	fedora:recommended)
+	debian:recommended)
 		dwm_packages "$family" desktop
-		dwm_packages "$family" system-management
 		dwm_packages "$family" screenshot-optional
 		dwm_packages "$family" theme
 		dwm_packages "$family" theme-gtk
 		dwm_packages "$family" fonts
 		;;
-	fedora:optional)
+	debian:optional)
 		dwm_packages "$family" theme-optional
-		dwm_packages "$family" desktop-optional
-		dwm_packages "$family" system-management-optional
 		;;
-	fedora:full)
+	debian:full)
 		dwm_packages "$family" required
 		dwm_packages "$family" recommended
 		dwm_packages "$family" optional
-		dwm_packages "$family" gaming
 		;;
+
 	*)
 		return 1
 		;;
@@ -303,8 +148,7 @@ dwm_package_provider_installed() {
 			[[ $command == - ]] || { command -v "$command" >/dev/null 2>&1 && return 0; }
 		done
 		case "$DISTRO_FAMILY" in
-		fedora) command -v rpm >/dev/null 2>&1 && rpm -q --whatprovides "$capability" >/dev/null 2>&1 ;;
-		debian13) package_installed "$candidate" ;;
+		debian) package_installed "$candidate" ;;
 		esac
 		return $?
 	done < <(dwm_packages "$DISTRO_FAMILY" provider-policy)

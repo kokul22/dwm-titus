@@ -40,7 +40,7 @@ class DependencyLaunchers(unittest.TestCase):
             tools = base / "bin"
             tools.mkdir()
             for cmd in ("cc", "make", "Xorg", "startx", "xrandr", "xset", "xsetroot", "xkbset",
-                        "quickshell", "picom", "feh", "xsettingsd", "bwrap", "xclip", "xdotool", "maim", "rpm",
+                        "quickshell", "picom", "feh", "xsettingsd", "bwrap", "xclip", "xdotool", "maim", "dpkg-query",
                         "dex", "amixer", "jq", "bluetoothctl", "blueman-applet", "alacritty", "xdg-open"):
                 p = tools / cmd
                 p.write_text("#!/bin/sh\nexit 0\n")

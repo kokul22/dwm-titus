@@ -34,7 +34,6 @@ INSTALL_COMMANDS = dwm-clipboard-observer \
 	scripts/dwm-diagnostics \
 	scripts/dwm-display-profile \
 	scripts/dwm-display-setup \
-	scripts/dwm-initial-update \
 	scripts/dwm-keybinds \
 	scripts/dwm-weather \
 	scripts/dwm-layout-settings \
@@ -98,7 +97,7 @@ INSTALL_COMMANDS = dwm-clipboard-observer \
 	scripts/xdg-enable-autostart.sh \
 	scripts/xscreensaver-setup.sh
 INSTALL_COMMAND_NAMES = $(notdir ${INSTALL_COMMANDS})
-PRIVILEGED_HELPERS = scripts/dwm-dnf-defaults scripts/dwm-settings-display-root scripts/dwm-desktop-update-root scripts/dwm-initial-update-root
+PRIVILEGED_HELPERS = scripts/dwm-settings-display-root scripts/dwm-desktop-update-root
 PRIVILEGED_HELPER_DIR = ${PREFIX}/libexec/dwm-titus
 
 RELEASE_NAME = dwm-titus-${VERSION}
@@ -388,16 +387,10 @@ install-user-files:
 	@echo "  Log out and select 'dwm', or start with: startx"
 	@echo ""
 
-print-dnf-defaults-helper:
-	@printf '%s\n' "${PRIVILEGED_HELPER_DIR}/dwm-dnf-defaults"
-
 uninstall:
 	/usr/bin/python3 -I scripts/dwm-desktop-update guard-system-install --destdir "${DESTDIR}" -- $(MAKE) uninstall-files
 
 uninstall-files:
-	if [ -f "${DESTDIR}${PRIVILEGED_HELPER_DIR}/dwm-dnf-defaults" ]; then \
-		/usr/bin/python3 -I "${DESTDIR}${PRIVILEGED_HELPER_DIR}/dwm-dnf-defaults" uninstall --destdir "${DESTDIR}"; \
-	fi
 	rm -rf "${DESTDIR}${DATADIR}/themes/"Dwm-*
 	rm -f "${DESTDIR}${DATADIR}/qt5ct/colors/"Dwm-*.conf "${DESTDIR}${DATADIR}/qt6ct/colors/"Dwm-*.conf
 	rm -f "${DESTDIR}${PREFIX}/bin/dwm" \
@@ -412,8 +405,6 @@ uninstall-files:
 	done
 	rm -f "${DESTDIR}${PRIVILEGED_HELPER_DIR}/dwm-settings-display-root"
 	rm -f "${DESTDIR}${PRIVILEGED_HELPER_DIR}/dwm-desktop-update-root"
-	rm -f "${DESTDIR}${PRIVILEGED_HELPER_DIR}/dwm-initial-update-root"
-	rm -f "${DESTDIR}${PRIVILEGED_HELPER_DIR}/dwm-dnf-defaults"
 	rm -f "${DESTDIR}${PREFIX}/share/dwm-titus/desktop-install.json"
 
 release: all
@@ -435,10 +426,10 @@ release: all
 	echo "==> Created ${RELEASE_ARCHIVE}"
 
 check-shell:
-	shellcheck packaging/rpm/build.sh install.sh scripts/dwm-accessibility-settings scripts/dwm-agent scripts/dwm-agent-diagnose scripts/dwm-crash-watch scripts/dwm-hang-event scripts/dwm-default-apps scripts/dwm-diagnostics scripts/dwm-display-profile scripts/dwm-display-setup scripts/dwm-lock scripts/dwm-lock-watch scripts/dwm-keybinds scripts/dwm-panel-settings scripts/dwm-quickshell-launcher scripts/dwm-quickshell-controls scripts/dwm-quickshell-controlcenter scripts/dwm-quickshell-network scripts/dwm-quickshell-pointer scripts/dwm-quickshell-state scripts/dwm-quickshell-version-check scripts/dwm-settings scripts/dwm-settings-appearance scripts/dwm-settings-font scripts/dwm-settings-personalization scripts/dwm-settings-wallpaper scripts/dwm-settings-theme scripts/dwm-settings-provider scripts/dwm-session-launch scripts/dwm-status scripts/dwm-system-health scripts/dwm-terminal scripts/dwm-xdg-autostart scripts/dwm-xsettings scripts/dwm-install-ai-agent scripts/install-herdr scripts/quickshell-qmllint scripts/run-tests scripts/run-tests-podman scripts/webapp-launch scripts/*.sh tests/*.sh
+	shellcheck install.sh scripts/dwm-accessibility-settings scripts/dwm-agent scripts/dwm-agent-diagnose scripts/dwm-crash-watch scripts/dwm-hang-event scripts/dwm-default-apps scripts/dwm-diagnostics scripts/dwm-display-profile scripts/dwm-display-setup scripts/dwm-lock scripts/dwm-lock-watch scripts/dwm-keybinds scripts/dwm-panel-settings scripts/dwm-quickshell-launcher scripts/dwm-quickshell-controls scripts/dwm-quickshell-controlcenter scripts/dwm-quickshell-network scripts/dwm-quickshell-pointer scripts/dwm-quickshell-state scripts/dwm-quickshell-version-check scripts/dwm-settings scripts/dwm-settings-appearance scripts/dwm-settings-font scripts/dwm-settings-personalization scripts/dwm-settings-wallpaper scripts/dwm-settings-theme scripts/dwm-settings-provider scripts/dwm-session-launch scripts/dwm-status scripts/dwm-system-health scripts/dwm-terminal scripts/dwm-xdg-autostart scripts/dwm-xsettings scripts/dwm-install-ai-agent scripts/install-herdr scripts/quickshell-qmllint scripts/run-tests scripts/webapp-launch scripts/*.sh tests/*.sh
 
 check-format:
-	shfmt -d packaging/rpm/build.sh install.sh scripts/dwm-accessibility-settings scripts/dwm-agent scripts/dwm-agent-diagnose scripts/dwm-crash-watch scripts/dwm-hang-event scripts/dwm-default-apps scripts/dwm-diagnostics scripts/dwm-display-profile scripts/dwm-display-setup scripts/dwm-lock scripts/dwm-lock-watch scripts/dwm-keybinds scripts/dwm-panel-settings scripts/dwm-quickshell-launcher scripts/dwm-quickshell-controls scripts/dwm-quickshell-controlcenter scripts/dwm-quickshell-network scripts/dwm-quickshell-pointer scripts/dwm-quickshell-state scripts/dwm-quickshell-version-check scripts/dwm-settings scripts/dwm-settings-appearance scripts/dwm-settings-font scripts/dwm-settings-personalization scripts/dwm-settings-wallpaper scripts/dwm-settings-theme scripts/dwm-settings-provider scripts/dwm-session-launch scripts/dwm-status scripts/dwm-system-health scripts/dwm-terminal scripts/dwm-xdg-autostart scripts/dwm-xsettings scripts/dwm-install-ai-agent scripts/install-herdr scripts/quickshell-qmllint scripts/run-tests scripts/run-tests-podman scripts/webapp-launch scripts/*.sh tests/*.sh
+	shfmt -d install.sh scripts/dwm-accessibility-settings scripts/dwm-agent scripts/dwm-agent-diagnose scripts/dwm-crash-watch scripts/dwm-hang-event scripts/dwm-default-apps scripts/dwm-diagnostics scripts/dwm-display-profile scripts/dwm-display-setup scripts/dwm-lock scripts/dwm-lock-watch scripts/dwm-keybinds scripts/dwm-panel-settings scripts/dwm-quickshell-launcher scripts/dwm-quickshell-controls scripts/dwm-quickshell-controlcenter scripts/dwm-quickshell-network scripts/dwm-quickshell-pointer scripts/dwm-quickshell-state scripts/dwm-quickshell-version-check scripts/dwm-settings scripts/dwm-settings-appearance scripts/dwm-settings-font scripts/dwm-settings-personalization scripts/dwm-settings-wallpaper scripts/dwm-settings-theme scripts/dwm-settings-provider scripts/dwm-session-launch scripts/dwm-status scripts/dwm-system-health scripts/dwm-terminal scripts/dwm-xdg-autostart scripts/dwm-xsettings scripts/dwm-install-ai-agent scripts/install-herdr scripts/quickshell-qmllint scripts/run-tests scripts/webapp-launch scripts/*.sh tests/*.sh
 
 check-timesync:
 	tests/test-timesync.sh
@@ -685,34 +676,8 @@ check-quickshell-settings-xvfb: all
 check-lightdm-config:
 	tests/test-lightdm-config.sh
 
-check-kickstart:
-	for ks in dwm-fedora.ks dwm-fedora-nvidia.ks; do \
-		ksvalidator "$$ks"; \
-		awk 'BEGIN { bad = 0 } \
-			/^[[:space:]]*#/ { next } \
-			/(^user[[:space:]]|^rootpw[[:space:]]|--hostname=|\/home\/titus|America\/Chicago|^initial-setup$$|^firstboot[[:space:]]+--enable)/ { \
-				print "Personal kickstart default remains in '"$$ks"': " $$0 > "/dev/stderr"; \
-				bad = 1; \
-			} \
-			END { exit bad }' "$$ks"; \
-		grep -Fqx 'firstboot --disable' "$$ks"; \
-	done
-	tests/test-kickstart-variants.sh
-	$(MAKE) check-fedora-iso-builder
-
-check-fedora-iso-builder:
-	/usr/bin/python3 tests/test-image-packagekit.py
-	tests/test-fedora-iso-builder.sh
-
-check-fedora-platform:
-	@$(call run_managed_test,tests/test-fedora-platform.sh)
-
 check-debian-dwm-platform:
 	@$(call run_managed_test,bash tests/test-debian-dwm-platform.sh)
-
-check-fedora-packages:
-	tests/test-package-provider-policy.sh
-	tests/test-fedora-packages.sh
 
 check-install: check-install-manifest
 
@@ -735,8 +700,6 @@ check-install-manifest: all
 			usr/bin/dwm \
 			usr/libexec/dwm-titus/dwm-settings-display-root \
 			usr/libexec/dwm-titus/dwm-desktop-update-root \
-			usr/libexec/dwm-titus/dwm-initial-update-root \
-			usr/libexec/dwm-titus/dwm-dnf-defaults \
 			usr/share/dwm-titus/desktop-install.json \
 			usr/share/man/man1/dwm.1 \
 			usr/share/xsessions/dwm.desktop; \
@@ -789,9 +752,6 @@ check-desktop-update: dwm
 check-test-runner:
 	@$(call run_managed_test,tests/test-run-tests.sh)
 
-check-test-runner-podman:
-	@$(call run_managed_test,tests/test-run-tests-podman.sh)
-
 release-check: all
 	@set -eu; \
 	first="$$(mktemp)"; \
@@ -826,13 +786,7 @@ check-picom-xvfb:
 check-app-themes:
 	$(call run_managed_test,xvfb-run -a python3 tests/test-app-themes.py)
 
-check-initial-update:
-	$(call run_managed_test,python3 tests/test-dnf-defaults.py)
-	$(call run_managed_test,python3 tests/test-initial-update.py)
-	$(call run_managed_test,dbus-run-session -- xvfb-run -a /usr/bin/python3 tests/test-initial-update-ui.py)
-
 check: check-picom check-picom-xvfb
-	$(MAKE) check-initial-update
 	$(MAKE) check-app-themes
 	$(MAKE) check-desktop-update
 	$(MAKE) clean
@@ -841,7 +795,6 @@ check: check-picom check-picom-xvfb
 	$(MAKE) check-shell
 	$(MAKE) check-format
 	$(MAKE) check-build-config
-	$(MAKE) check-fedora-platform
 	$(MAKE) check-debian-dwm-platform
 	$(MAKE) check-dev-sync-install
 	$(MAKE) check-default-apps
@@ -907,22 +860,18 @@ check: check-picom check-picom-xvfb
 	$(MAKE) check-webapp-launch
 	$(MAKE) check-screenshot
 	$(MAKE) check-release-helper
-	$(MAKE) check-kickstart
-	$(MAKE) check-fedora-packages
 	$(MAKE) check-install
 	$(MAKE) check-install-preservation
 	$(MAKE) check-test-runner
-	$(MAKE) check-test-runner-podman
 	$(MAKE) check-lightdm-config
 	$(MAKE) release-check
 
-.PHONY: check-update-center check-update-center-terminal check-update-center-window-rule check-quickshell-update-center-model check-quickshell-update-center check-quickshell-update-center-xvfb print-dnf-defaults-helper check-initial-update install-files install-user-files install-system-files clean all check check-desktop-update check-picom check-picom-xvfb check-accessibility check-appearance check-phase5-optional-components check-build-config check-build-deps check-default-apps check-xdg-autostart check-dev-sync-install \
+.PHONY: check-update-center check-update-center-terminal check-update-center-window-rule check-quickshell-update-center-model check-quickshell-update-center check-quickshell-update-center-xvfb install-files install-user-files install-system-files clean all check check-desktop-update check-picom check-picom-xvfb check-accessibility check-appearance check-phase5-optional-components check-build-config check-build-deps check-default-apps check-xdg-autostart check-dev-sync-install \
 	check-cursor-reload \
 	check-test-runner \
-	check-test-runner-podman \
 	check-update-center-settings \
-	check-display-profile check-display-setup check-fedora-iso-builder check-fedora-packages check-fedora-platform check-debian-dwm-platform check-format check-install \
-	check-gearlever-install check-herdr-install check-install-manifest check-install-preservation check-kickstart check-lock \
+	check-display-profile check-display-setup check-debian-dwm-platform check-format check-install \
+	check-gearlever-install check-herdr-install check-install-manifest check-install-preservation check-lock \
 	check-timesync check-session-guards check-session-migration check-screenshot check-release-helper check-shell check-webapp-launch check-diagnostics check-status check-system-health check-system-management check-quickshell-system-management check-settings \
 	check-quickshell-launcher check-quickshell-controls check-quickshell-audio check-quickshell-controlcenter check-quickshell-power check-quickshell-power-backend check-quickshell-power-model check-quickshell-session-actions check-quickshell-defaults-model check-quickshell-agent-settings check-quickshell-appearance-model check-quickshell-design-system check-quickshell-large-surfaces check-quickshell-large-surfaces-xvfb check-quickshell-panel-menus check-quickshell-panel-settings check-quickshell-command-menu check-quickshell-notifications check-quickshell-tray check-quickshell-health-xvfb check-quickshell-settings-xvfb check-quickshell-settings-responsiveness-xvfb check-quickshell-network check-quickshell-connectivity check-quickshell-qml check-lightdm-config check-terminal check-xvfb-runtime check-keyboard-layout install install-system install-user \
 	install-cursors install-app-themes check-app-themes native release release-check uninstall uninstall-files

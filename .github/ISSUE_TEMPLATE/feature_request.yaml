@@ -30,8 +30,8 @@ body:
   - type: textarea
     id: alternatives
     attributes:
-      label: Alternatives and Fedora impact
-      description: Explain alternatives and effects on supported Fedora installations.
+      label: Alternatives and Debian-family impact
+      description: Explain alternatives and effects on supported Debian-family installations.
 
   - type: checkboxes
     id: scope

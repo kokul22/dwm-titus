@@ -5,7 +5,7 @@ description: Customize the dwm-titus X11 desktop, including TOML keybindings, th
 
 # dwm-titus
 
-dwm-titus is Chris Titus Tech's Fedora/X11 desktop: patched dwm plus a managed
+dwm-titus is Chris Titus Tech's Debian/X11 desktop: patched dwm plus a managed
 Quickshell panel and `dwm-*` helpers. Upstream:
 https://github.com/ChrisTitusTech/dwm-titus. Route failures ("X is broken",
 "why did Y stop") to `$dwm-titus-debug`.
@@ -64,7 +64,7 @@ Over SSH, first import `DISPLAY` and `XAUTHORITY` from the running dwm (see
   or `cursor.Xresources`; change the source setting instead.
 - Do not edit `~/.local/share/dwm-titus/scripts/autostart.sh`; installs replace
   it. Use XDG autostart entries.
-- Use `dnf` only. Ask before root changes such as LightDM or Xorg files; use
+- Use `apt-get` only. Ask before root changes such as LightDM or Xorg files; use
   `$linux-sysadmin` for host-level work when available.
 - Use `$quickshell` for QML work and `$bash-scripting` for shell scripts when
   available. Otherwise follow the checkout's `AGENTS.md`, configured QML lint,

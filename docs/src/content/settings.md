@@ -55,7 +55,7 @@ use **Apply changes** and **Keep changes** to test first. You can prepare the
 Undocked layout while the dock remains connected. Connect the saved monitors
 before editing a Docked layout.
 
-This optional feature uses Fedora's `autorandr` login and hotplug integration,
+This optional feature uses the optional `autorandr` login and hotplug integration,
 without administrator approval. Saving Undocked makes it the default fallback.
 Docked matches the connected monitor identities, not just the connector type.
 Replaced profiles are backed up in the dwm-titus `display-profile-backups`
@@ -146,7 +146,7 @@ name.
 
 The System section includes **Manage accounts**, **Change my password**,
 **Manage printers**, and **Manage software sources**. Each opens a fixed trusted
-Fedora tool only after a separate confirmation. Missing tools and stale provider
+system administration tool only after a separate confirmation. Missing tools and stale provider
 status are explained beside the affected control. Reported accounts and enabled
 or disabled software sources are read-only lists here. The tool owns its own
 authorization and changes; an accepted launch is not proof that work inside it

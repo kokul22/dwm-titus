@@ -48,7 +48,7 @@ ShellRoot {
             "action\tprinters-open\tavailable\tdelegated\tprinters\tPrinters\tConfirm launch",
             "action\tsources-open\tavailable\tdelegated\tsources\tSources\tConfirm launch",
             "account\t/opaque/current\tcurrent\tCurrent user\tfixture",
-            "repository\tfedora\tenabled\tFedora"];
+            "repository\tdebian\tenabled\tDebian"];
     }
 
     function snapshot() {
@@ -194,7 +194,7 @@ ShellRoot {
                 ["state\taccounts-count\t", "state\taccounts-count\tavailable\t2\tWrong count", "accounts"],
                 ["action\taccounts-open\t", "action\taccounts-open\tavailable\tdelegated\tprinters\tWrong owner\tMismatch", "accounts"],
                 ["account\t", "account\t/opaque/current\tcurrent\tName", "accounts"],
-                ["repository\t", "repository\tfedora\tunknown\tWrong enum", "sources"]]) {
+                ["repository\t", "repository\tdebian\tunknown\tWrong enum", "sources"]]) {
             root.malformedOwner(root.replaceRow(root.snapshot(), mutation[0], mutation[1]), mutation[2], mutation[0]);
         }
         let lines = root.replaceRow(root.snapshot(), "state\taccounts-count\t", "state\taccounts-count\tpartial\tunknown\tIncomplete inventory");

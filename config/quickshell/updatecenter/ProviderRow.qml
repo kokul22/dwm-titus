@@ -20,7 +20,7 @@ Rectangle {
     readonly property bool providerMissing: root.provider.status === "unavailable" && root.provider.errorCode === "missing-provider"
     readonly property string relativeCheckAge: root.formatCheckAge(root.provider.lastSuccess, root.nowSeconds)
     readonly property var providerIcons: ({
-        "fedora": "../assets/update-center/fedora.svg",
+        "debian": "../assets/update-center/other.svg",
         "dwm-titus": "../assets/update-center/dwm-titus.png",
         "flatpak": "../assets/update-center/flatpak.svg",
         "mise": "../assets/update-center/mise.svg",

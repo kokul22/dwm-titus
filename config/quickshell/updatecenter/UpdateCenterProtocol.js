@@ -1,13 +1,13 @@
 .pragma library
 
-const providerOrder = ["fedora", "dwm-titus", "flatpak", "mise"];
+const providerOrder = ["debian", "dwm-titus", "flatpak", "mise"];
 const providerStates = ["available", "partial", "restricted", "unavailable", "unsupported"];
 const freshnessStates = ["fresh", "cached", "stale", "error"];
 const errorCodes = ["", "malformed", "timeout", "missing-provider", "internal", "scan-failed", "busy",
     "network", "repository", "conflict", "signature", "package", "unsupported",
     "permission-denied", "canceled", "interrupted"];
 const operationActions = ["update", "recover"];
-const operationPhases = ["reserved", "launched", "running", "preparing", "fedora-executing",
+const operationPhases = ["reserved", "launched", "running", "preparing", "debian-apt",
     "desktop-starting", "flatpak-system", "flatpak-system-complete", "flatpak-user",
     "flatpak-user-complete", "mise-inventory", "mise-update", "mise-recheck", "recovering",
     "completed", "failed", "interrupted", "system-failed", "system-complete/user-failed", "closed"];

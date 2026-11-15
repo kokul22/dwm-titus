@@ -4,8 +4,8 @@ set -euo pipefail
 
 # shellcheck source=scripts/dwm-utils.sh
 source "$(dirname "${BASH_SOURCE[0]}")/dwm-utils.sh"
-if [[ $DISTRO_FAMILY != fedora ]]; then
-	printf 'Automatic time synchronization setup supports Fedora only.\n' >&2
+if [[ $DISTRO_FAMILY != debian ]]; then
+	printf 'Automatic time synchronization setup supports Debian based distributions only.\n' >&2
 	exit 1
 fi
 

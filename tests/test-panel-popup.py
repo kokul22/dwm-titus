@@ -33,7 +33,7 @@ for handler, visible in (('onVisibleChanged', 'visible'),
   assert 'clipboardModel.close();' in body, handler
  if handler == 'onVisibleChanged': assert len(matches) >= 6
 assert 'commandMenuModel.close();\n                clipboardModel.close();\n                updateCenterModel.close();' in shell_source
-# Keep the AF_UNIX IPC path below 108 bytes even in the Fedora SDK's longer HOME.
+# Keep the AF_UNIX IPC path below 108 bytes even in the Debian SDK's longer HOME.
 # Fixtures stay under the managed root; only this private runtime uses /tmp.
 with tempfile.TemporaryDirectory(prefix='pp-', dir='/tmp') as ipc_runtime, \
      tempfile.TemporaryDirectory(prefix='panel-popup-', dir=os.environ.get('TMPDIR', str(Path.home()/'tmp'))) as temp:

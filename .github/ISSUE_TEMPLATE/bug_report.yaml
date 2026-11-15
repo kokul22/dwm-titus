@@ -25,21 +25,21 @@ body:
       required: true
 
   - type: dropdown
-    id: fedora_release
+    id: debian_release
     attributes:
-      label: Fedora release
+      label: Debian-family release
       options:
-        - Fedora 45
-        - Fedora 44
-        - Fedora Rawhide
+        - Debian 13
+        - Ubuntu/Debian derivative
+        - Other Debian derivative
     validations:
       required: true
 
   - type: input
     id: environment
     attributes:
-      label: Fedora release, architecture, and session
-      placeholder: "Fedora 45, x86_64, X11 via LightDM"
+      label: Distribution version, architecture, and session
+      placeholder: "Debian 13, x86_64, X11 via LightDM"
     validations:
       required: true
 

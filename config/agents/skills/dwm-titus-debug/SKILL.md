@@ -12,8 +12,8 @@ change itself.
 ## Workflow
 
 1. Restate the symptom, the affected app or component, and when it started.
-   Look for recent changes yourself first (`rpm -qa --last | head`,
-   `dnf history`, config mtimes, the desktop-update `status.json`); ask the
+   Look for recent changes yourself first (`dpkg-query -W -f=${binary:Package}\t${Version}\n`,
+   `APT history`, config mtimes, the desktop-update `status.json`); ask the
    user only if that leaves it open.
 2. Run the two read-only scans and note every non-ok row:
    `dwm-diagnostics` and `dwm-system-health scan-user`.

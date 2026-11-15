@@ -20,7 +20,7 @@ Bar Widgets, Quick Actions, Appearance, and Power Settings replace the menu
 contents in the same card and provide a Back control. Press <kbd>Esc</kbd> or
 click outside the card to close it from any page.
 
-The update indicator beside the clock opens the Update Center for Fedora,
+The update indicator beside the clock opens the Update Center for Debian system packages,
 desktop, Flatpak, and mise updates. See [Updates](/updates.html) for provider
 selection, progress, and recovery.
 

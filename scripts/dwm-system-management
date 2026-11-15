@@ -64,7 +64,7 @@ NATIVE_WATCH_SECONDS = 120
 DELEGATED_TOOLS = {
     "accounts-open": ("/usr/bin/lxqt-admin-user", "User accounts"),
     "printers-open": ("/usr/bin/system-config-printer", "Printers"),
-    "sources-open": ("/usr/bin/dnfdragora", "Software sources"),
+    "sources-open": ("/usr/bin/synaptic", "Software sources"),
 }
 PASSWORD_TERMINALS = {"alacritty": ("-e",), "kitty": (), "st": ("-e",), "xterm": ("-e",)}
 DELEGATED_ACTIONS = frozenset((*DELEGATED_TOOLS, "password-open"))
@@ -2144,7 +2144,7 @@ class RegionalMutation(ServiceRead):
     def run(self):
         if self.started:
             raise RuntimeError("Regional operations are single-use")
-        read_fedora_identity()
+        read_debian_identity()
         if self.action == "locale-set":
             self.choices = validate_locale_catalog(read_locale_choices())
         try:
@@ -5793,7 +5793,7 @@ def normalize_plan(
         )
 
     requested = set(requested_ids)
-    # DNF5 GetUpdates includes install actions as well as upgrades. Preserve
+    # PackageKit GetUpdates includes install actions as well as upgrades. Preserve
     # those simulated actions, but do not admit an unrequested update identity.
     represented = {row.package_id for row in rows
                    if row.package_id in requested and row.action in {"install", "update"}}
@@ -6407,7 +6407,7 @@ class NativeSnapshotSources:
 
     def admission(self):
         """Check advisory native admission without PackageKit, logind, or a lease."""
-        read_fedora_identity()
+        read_debian_identity()
         try:
             with open_journal_directory() as chain:
                 with open_writable_journal(chain) as journal:
@@ -6836,33 +6836,9 @@ def build_snapshot(backend: UpdateBackend, *,
     return lines
 
 
-def packagekit_security_floor(
-    version: str, release: str, fedora_release: str,
-    daemon_version: tuple[int, int, int], compare: Callable,
-) -> bool:
-    """Use RPM ordering, including Fedora 44's explicitly patched backport."""
-    if (
-        not isinstance(version, str) or not isinstance(release, str)
-        or len(version) > 128 or len(release) > 128
-        or re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+(?:[~^][0-9A-Za-z.+_-]+)?", version) is None
-        or re.fullmatch(r"[0-9A-Za-z.+_~^-]+", release) is None
-        or not isinstance(daemon_version, tuple) or len(daemon_version) != 3
-        or any(type(value) is not int or not 0 <= value <= G_MAXUINT for value in daemon_version)
-    ):
-        return False
-    numeric = re.match(r"([0-9]+)\.([0-9]+)\.([0-9]+)", version)
-    if tuple(int(value) for value in numeric.groups()) != daemon_version:
-        return False
-    candidate = ("0", version, release)
-    return compare(candidate, ("0", "1.3.5", "0")) >= 0 or (
-        fedora_release == "44" and version == "1.3.4"
-        and re.fullmatch(r"[0-9]+(?:\.[0-9]+)*\.fc44(?:\.[0-9]+)*", release) is not None
-        and compare(candidate, ("0", "1.3.4", "3.fc44")) >= 0
-    )
 
-
-def read_fedora_identity() -> dict[str, str]:
-    """Read only the fixed platform identity keys; never evaluate shell content."""
+def read_debian_identity() -> dict[str, str]:
+    """Read only fixed Debian-family identity keys; never evaluate shell content."""
     try:
         with open("/etc/os-release", "rb") as source:
             data = source.read(65537)
@@ -6871,17 +6847,18 @@ def read_fedora_identity() -> dict[str, str]:
         identity = {}
         for line in data.decode("utf-8").splitlines():
             key = line.partition("=")[0]
-            if key not in {"ID", "VERSION_ID"}:
+            if key not in {"ID", "ID_LIKE", "VERSION_ID"}:
                 continue
             fields = shlex.split(line, comments=False)
             if len(fields) != 1 or key in identity or "=" not in fields[0]:
                 raise ValueError
             identity[key] = fields[0].partition("=")[2]
-        if identity.get("ID") != "fedora":
-            raise SnapshotFailure("unsupported", "System changes are supported only on Fedora", "unsupported")
+        ids = {identity.get("ID", ""), *identity.get("ID_LIKE", "").split()}
+        if not ids.intersection({"debian", "ubuntu"}):
+            raise SnapshotFailure("unsupported", "System changes are supported only on Debian based distributions", "unsupported")
         return identity
     except (OSError, UnicodeError, ValueError) as error:
-        raise SnapshotFailure("unsupported", "Fedora platform identity is unavailable", "unsupported") from error
+        raise SnapshotFailure("unsupported", "Debian platform identity is unavailable", "unsupported") from error
 
 
 def recover_journal_active(
@@ -7759,36 +7736,36 @@ class PackageKitBackend:
         return values[0]
 
     def require_mutation_safe(self) -> None:
-        """Keep discovery readable while rejecting unknown or vulnerable mutation owners."""
-        identity = read_fedora_identity()
+        """Allow mutations only when a supported distro package owns the live daemon."""
+        identity = read_debian_identity()
         try:
-            import rpm
-        except ImportError as error:
-            raise SnapshotFailure("missing-provider", "System RPM bindings are unavailable", "unavailable") from error
-        try:
-            headers = []
-            for header in rpm.TransactionSet().dbMatch("name", "PackageKit"):
-                headers.append(header)
-                if len(headers) > 1:
-                    break
-            if len(headers) != 1 or headers[0]["epoch"] not in (None, 0):
+            package = subprocess.run(["/usr/bin/dpkg-query", "-W", "-f=${Version}", "packagekit"],
+                                     check=True, capture_output=True, text=True,
+                                     stdin=subprocess.DEVNULL, timeout=10).stdout.strip()
+            if not package or len(package) > 128:
                 raise ValueError
+            distro_ids = {identity.get("ID", ""), *identity.get("ID_LIKE", "").split()}
+            if "debian" in distro_ids and identity.get("VERSION_ID") == "13":
+                floor = subprocess.run(["/usr/bin/dpkg", "--compare-versions", package, "ge",
+                                         "1.3.1-1+deb13u1"], stdin=subprocess.DEVNULL, timeout=10).returncode
+                if floor != 0:
+                    raise ValueError
             values = self._call(PACKAGEKIT_PATH, PROPERTIES_INTERFACE, "GetAll",
                 self.GLib.Variant("(s)", (PACKAGEKIT_INTERFACE,)), time.monotonic() + 10).unpack()
             if len(values) != 1 or not isinstance(values[0], dict):
                 raise ValueError
             properties = values[0]
             version = tuple(properties.get(key) for key in ("VersionMajor", "VersionMinor", "VersionMicro"))
-            if not packagekit_security_floor(headers[0]["version"], headers[0]["release"],
-                                            identity.get("VERSION_ID", ""), version, rpm.labelCompare):
+            if (len(version) != 3 or any(type(item) is not int for item in version)
+                    or version < ((1, 3, 1) if "debian" in distro_ids and identity.get("VERSION_ID") == "13"
+                                  else (1, 3, 5))):
                 raise ValueError
-            if version == (1, 3, 4):
-                self._require_running_backport_identity()
-        except (OSError, ValueError, TypeError, KeyError, rpm.error) as error:
-            raise SnapshotFailure("unsupported", "PackageKit requires 1.3.5 or Fedora 44 security backport 1.3.4-3.fc44", "unsupported") from error
+            self._require_running_package_identity()
+        except (OSError, subprocess.SubprocessError, ValueError, TypeError, KeyError, self.GLib.Error) as error:
+            raise SnapshotFailure("unsupported", "PackageKit is missing, outdated, or not the active system package; update it with APT and reload Settings", "unsupported") from error
 
-    def _require_running_backport_identity(self) -> None:
-        """A release-only security fix needs more than the daemon's semantic version."""
+    def _require_running_package_identity(self) -> None:
+        """Verify that PackageKit runs from its trusted system package file."""
         deadline = time.monotonic() + 10
 
         def bus_identity(method: str, argument: str) -> object:
@@ -7817,9 +7794,9 @@ class PackageKitBackend:
             if bus_identity("GetNameOwner", PACKAGEKIT_NAME) != owner:
                 raise ValueError
         except (OSError, ValueError, TypeError, self.GLib.Error, SnapshotFailure) as error:
-            # Some Fedora procfs policies deny this read to session clients.
+            # Some Debian procfs policies deny this read to session clients.
             # Do not elevate or guess that a same-version daemon was restarted.
-            raise SnapshotFailure("unsupported", "Cannot verify the running PackageKit security backport; update PackageKit to 1.3.5 or newer using Fedora DNF, then reboot and reload Settings", "unsupported") from error
+            raise SnapshotFailure("unsupported", "Cannot verify the running PackageKit daemon; update it with APT, then reboot and reload Settings", "unsupported") from error
 
     def create_mutation(self) -> str:
         """Create and configure an empty transaction, without invoking package work."""
@@ -9113,7 +9090,7 @@ def run_native_command(action: str, argument: str, generation: str,
                 error_writer((message + "\n").encode("ascii"))
 
     try:
-        read_fedora_identity()
+        read_debian_identity()
         boot_id = read_boot_id()
         with open_journal_directory() as chain:
             initialize_journal_layout(chain.directory_descriptor, boot_id)
@@ -10017,7 +9994,7 @@ def mount_baseline_ready(process, identity) -> bool:
                 continue
             try:
                 if os.readlink(entry.path) == directory + "/mountinfo":
-                    # Fedora util-linux opens its temporary parsing descriptor
+                    # Debian util-linux opens its temporary parsing descriptor
                     # with CLOEXEC, but poll_table's persistent fopen("r") does
                     # not. Merely seeing mountinfo can race the first parse.
                     with open(directory + "/fdinfo/" + entry.name, "r", encoding="ascii") as info:

@@ -95,13 +95,13 @@ check_required_cmd() {
 check_keyring() {
 	local package
 	while IFS= read -r package; do
-		if have_cmd rpm && rpm -q "$package" >/dev/null 2>&1; then
+		if dpkg-query -W -f='${db:Status-Status}' -- "$package" 2>/dev/null | grep -qx installed; then
 			ok "dependency-package-$package" "$package" "$package is installed"
 		else
 			required_missing "dependency-package-$package" "$package" \
 				"Install $package for secret storage and automatic keyring unlock at password login; then log out and back in"
 		fi
-	done < <(dwm_packages fedora keyring)
+	done < <(dwm_packages debian keyring)
 }
 
 check_optional_cmd() {

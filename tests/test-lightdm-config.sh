@@ -8,16 +8,16 @@ repo=$(
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 
-fedora_stage="$work/fedora"
+debian_stage="$work/debian"
 
 make -C "$repo/lightdm" --no-print-directory \
-	DESTDIR="$fedora_stage" \
+	DESTDIR="$debian_stage" \
 	LIGHTDM_SEAT_SECTION='Seat:*' \
 	LIGHTDM_GREETER_SESSION=slick-greeter \
 	LIGHTDM_SESSION_WRAPPER= \
 	LIGHTDM_LOGIND_CHECK=true \
 	install >/dev/null
-cat >"$work/fedora.expected" <<'CONF'
+cat >"$work/debian.expected" <<'CONF'
 [LightDM]
 logind-check-graphical=true
 
@@ -25,9 +25,9 @@ logind-check-graphical=true
 greeter-session=slick-greeter
 user-session=dwm
 CONF
-cmp -s "$work/fedora.expected" "$fedora_stage/etc/lightdm/lightdm.conf"
+cmp -s "$work/debian.expected" "$debian_stage/etc/lightdm/lightdm.conf"
 
-grep -Fqx 'xft-dpi=96' "$fedora_stage/etc/lightdm/slick-greeter.conf"
-grep -Fqx 'activate-numlock=false' "$fedora_stage/etc/lightdm/slick-greeter.conf"
+grep -Fqx 'xft-dpi=96' "$debian_stage/etc/lightdm/slick-greeter.conf"
+grep -Fqx 'activate-numlock=false' "$debian_stage/etc/lightdm/slick-greeter.conf"
 
 printf 'LightDM config rendering: PASS\n'
