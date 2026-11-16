@@ -5737,6 +5737,29 @@ def enforce_list_budget(rows: Sequence[UpdateRow] | Sequence[PlanRow]) -> None:
         )
 
 
+def packagekit_update_info_translation(packagekit: object) -> dict[int, int]:
+    """Translate PackageKit's newer update action enum to the stable UI model."""
+    enum_from_string = getattr(packagekit, "info_enum_from_string", None)
+    if not callable(enum_from_string):
+        return {}
+    try:
+        update = int(enum_from_string("update"))
+    except (TypeError, ValueError):
+        return {}
+    if update == 0:
+        return {}
+    translated = {}
+    for name, target in (("blocked", 9), ("update", 5),
+                         ("update-security", 8), ("update-enhancement", 4)):
+        try:
+            value = int(enum_from_string(name))
+        except (TypeError, ValueError):
+            continue
+        if value != 0:
+            translated[value] = target
+    return translated
+
+
 def normalize_updates(packages: Sequence[Package]) -> list[UpdateRow]:
     rows: list[UpdateRow] = []
     seen: set[str] = set()
@@ -7552,6 +7575,7 @@ class PackageKitBackend:
             )
         )
         self.flags_only_trusted = PackageKitGlib.transaction_flag_bitfield_from_string("only-trusted")
+        self.update_info_translation = packagekit_update_info_translation(PackageKitGlib)
         try:
             self.connection = Gio.bus_get_sync(Gio.BusType.SYSTEM, None)
         except GLib.Error as error:
@@ -8550,7 +8574,10 @@ class PackageKitBackend:
                 if signal == "Package":
                     if len(unpacked) != 3:
                         raise ValueError
-                    packages.append(Package(int(unpacked[0]), unpacked[1], unpacked[2]))
+                    info = int(unpacked[0])
+                    if method == "GetUpdates":
+                        info = self.update_info_translation.get(info, info)
+                    packages.append(Package(info, unpacked[1], unpacked[2]))
                 elif signal == "Packages":
                     if len(unpacked) != 1:
                         raise ValueError
@@ -8558,7 +8585,10 @@ class PackageKitBackend:
                         if len(item) != 3:
                             raise ValueError
                         info, package_id, summary = item
-                        packages.append(Package(int(info), package_id, summary))
+                        info = int(info)
+                        if method == "GetUpdates":
+                            info = self.update_info_translation.get(info, info)
+                        packages.append(Package(info, package_id, summary))
                 elif signal == "RequireRestart":
                     if len(unpacked) != 2:
                         raise ValueError

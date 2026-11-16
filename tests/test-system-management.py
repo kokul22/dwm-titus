@@ -73,6 +73,28 @@ class ComposedFixtureSnapshotTests(unittest.TestCase):
                         self.assertEqual(len(filesystems), 1)
 
 
+class PackageKitUpdateClassificationTests(unittest.TestCase):
+    def test_new_update_actions_translate_to_existing_severity_model(self):
+        class ModernPackageKit:
+            values = {"update": 11, "update-security": 12,
+                      "update-enhancement": 13, "blocked": 3}
+
+            @classmethod
+            def info_enum_from_string(cls, name):
+                return cls.values.get(name, 0)
+
+        self.assertEqual(provider.packagekit_update_info_translation(ModernPackageKit),
+                         {3: 9, 11: 5, 12: 8, 13: 4})
+
+    def test_legacy_packagekit_keeps_severity_enum_unchanged(self):
+        class LegacyPackageKit:
+            @staticmethod
+            def info_enum_from_string(_name):
+                return 0
+
+        self.assertEqual(provider.packagekit_update_info_translation(LegacyPackageKit), {})
+
+
 class InformationSnapshotTests(unittest.TestCase):
     def sources(self):
         source = mock.Mock(spec=provider.InformationSnapshotSources)
