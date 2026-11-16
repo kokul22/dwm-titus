@@ -5,7 +5,7 @@ function informationIds() {
         "cpu-model", "logical-cpus", "memory-total-bytes", "memory-available-bytes", "swap-total-bytes",
         "swap-free-bytes", "uptime-seconds"];
 }
-function securityIds() { return ["selinux", "secure-boot", "firewalld", "root-encryption", "screen-lock"]; }
+function securityIds() { return ["apparmor", "secure-boot", "firewall", "root-encryption", "screen-lock"]; }
 function stateIds() { return informationIds().concat(["filesystem-summary"], securityIds()); }
 function owners() { return ["information", "storage", "security", "diagnostics"]; }
 function owner(identifier) {
@@ -27,7 +27,7 @@ function validValue(identifier, status, value) {
     if (["logical-cpus", "memory-total-bytes", "memory-available-bytes", "swap-total-bytes",
             "swap-free-bytes", "uptime-seconds"].indexOf(identifier) >= 0)
         return uint64(value) && (identifier !== "logical-cpus" || value !== "0");
-    if (identifier === "selinux") return ["enforcing", "permissive", "disabled"].indexOf(value) >= 0;
+    if (identifier === "apparmor") return value === "enabled" || value === "disabled";
     if (identifier === "root-encryption") return value === "encrypted" || value === "unencrypted";
     if (securityIds().indexOf(identifier) >= 0) return value === "enabled" || value === "disabled";
     return typeof value === "string" && value.trim().length > 0;

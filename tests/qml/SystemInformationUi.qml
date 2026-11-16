@@ -41,7 +41,7 @@ ShellRoot {
             check(item("information-value-memory-total-bytes").text.indexOf("18446744073709551615 bytes") >= 0,
                 "Exact uint64 string retained in rendered detail");
             check(item("information-value-secure-boot").text === "Unknown", "Unknown status never claims disabled");
-            check(item("information-value-selinux").text === "enforcing", "Peer security state remains readable");
+            check(item("information-value-apparmor").text === "enabled", "Peer security state remains readable");
             model.filesystemsRetained = true;
             item("openSystemHealth").forceActiveFocus();
         } else if (stage === 1 && item("openSystemHealth").activeFocus) {
@@ -65,7 +65,7 @@ ShellRoot {
                 const section = Quickshell.env("DWM_INFORMATION_UI_SECTION");
                 Qt.callLater(function() {
                     pane.contentY = section === "storage" ? item("filesystemFreshness").mapToItem(content, 0, 0).y
-                        : section === "security" ? item("information-value-selinux").mapToItem(content, 0, 0).y - 90
+                        : section === "security" ? item("information-value-apparmor").mapToItem(content, 0, 0).y - 90
                         : section === "recovery" ? pane.contentHeight - pane.height : 0;
                     console.info("Information UI manual fixture ready");
                 });
@@ -88,8 +88,8 @@ ShellRoot {
             if (identifier === "secure-boot") return {status: "partial", value: "unknown", detail: "Firmware evidence unavailable"};
             const values = {"os-name": "Debian GNU/Linux 13 (Fixture)", "os-version": "44", "kernel-release": "6.18.fixture",
                 architecture: "x86_64", "hardware-vendor": "Fixture vendor", "hardware-model": "Fixture workstation",
-                "cpu-model": "Fixture CPU", "logical-cpus": "16", "uptime-seconds": "94231", "selinux": "enforcing",
-                "firewalld": "enabled", "root-encryption": "encrypted", "screen-lock": "enabled"};
+                "cpu-model": "Fixture CPU", "logical-cpus": "16", "uptime-seconds": "94231", "apparmor": "enabled",
+                "firewall": "enabled", "root-encryption": "encrypted", "screen-lock": "enabled"};
             return {status: "available", value: values[identifier] || "18446744073709551615", detail: "Read-only fixture observation"};
         }
         function nativeProviderView(owner) { return {status: "available", detail: "Bounded read-only " + owner + " observations"}; }

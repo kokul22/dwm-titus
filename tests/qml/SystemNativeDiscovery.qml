@@ -9,7 +9,7 @@ ShellRoot {
     id: root
     property string eventDomain: Quickshell.env("DWM_DISCOVERY_DOMAIN") || "time"
     readonly property string heldDomain: root.eventDomain === "time" ? "locale" : root.eventDomain
-    readonly property string stateId: root.eventDomain === "storage" ? "filesystem-summary" : root.eventDomain === "security" ? "firewalld" : "timezone"
+    readonly property string stateId: root.eventDomain === "storage" ? "filesystem-summary" : root.eventDomain === "security" ? "firewall" : "timezone"
     function eventMonitor() { return model.discoveryModels().find(item => item.domain === root.eventDomain); }
     readonly property string failedDomain: root.eventDomain === "time" ? "locale" : root.eventDomain
     readonly property string failedStateId: root.eventDomain === "time" ? "locale" : root.stateId
@@ -154,7 +154,7 @@ ShellRoot {
         } else if (root.stage === 10 && idle && root.count() === 7) {
             root.check(root.eventMonitor().phase === "blocked", "Required recovery read cannot clear blocked time freshness");
             root.check(model.actions.some(action => action.id === "health-open"), "Required core recovery retains read-only health navigation");
-            root.check(model.nativeStates.firewalld.value === "enabled", "Core recovery retains optional readable observations");
+            root.check(model.nativeStates.firewall.value === "enabled", "Core recovery retains optional readable observations");
             root.check(model.errors.filter(item => item.provider === "information").length === 1,
                 "Core recovery retains the prior optional diagnostic exactly once");
             root.stage = -1;

@@ -21,8 +21,8 @@ ColumnLayout {
         {id: "uptime-seconds", label: "Uptime"}
     ]
     readonly property var security: [
-        {id: "selinux", label: "SELinux"}, {id: "secure-boot", label: "Secure Boot"},
-        {id: "firewalld", label: "Firewall service"}, {id: "root-encryption", label: "Root filesystem encryption"},
+        {id: "apparmor", label: "AppArmor"}, {id: "secure-boot", label: "Secure Boot"},
+        {id: "firewall", label: "Firewall services"}, {id: "root-encryption", label: "Root filesystem encryption"},
         {id: "screen-lock", label: "Automatic screen lock"}
     ]
 
@@ -163,7 +163,7 @@ ColumnLayout {
         delegate: StateRow { required property var modelData; definition: modelData }
     }
     PlainText {
-        text: "These indicators describe detected configuration, not a security audit. Firewall service status does not describe firewall rules. Root encryption does not cover every disk. Automatic locking depends on the current X11 session. Review update availability and restart requirements above. Firewall policy and service administration remain in trusted system tools."
+        text: "These indicators describe detected configuration, not a security audit. AppArmor status does not audit individual profile modes. Firewall service status does not describe firewall rules. Root encryption does not cover every disk. Automatic locking depends on the current X11 session. Review update availability and restart requirements above. Firewall policy and service administration remain in trusted system tools."
         color: Theme.menuMutedText
     }
 

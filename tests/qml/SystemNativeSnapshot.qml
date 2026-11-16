@@ -83,8 +83,8 @@ ShellRoot {
             lines.push("state\t" + identifier + "\tavailable\tFixture\tDisplay text");
         for (const identifier of ["logical-cpus", "memory-total-bytes", "memory-available-bytes", "swap-total-bytes", "swap-free-bytes", "uptime-seconds"])
             lines.push("state\t" + identifier + "\tavailable\t18446744073709551615\tExact counter");
-        for (const identifier of ["selinux", "secure-boot", "firewalld", "root-encryption", "screen-lock"])
-            lines.push("state\t" + identifier + "\tavailable\t" + (identifier === "selinux" ? "enforcing" : identifier === "root-encryption" ? "encrypted" : "enabled") + "\tSecurity");
+        for (const identifier of ["apparmor", "secure-boot", "firewall", "root-encryption", "screen-lock"])
+            lines.push("state\t" + identifier + "\tavailable\t" + (identifier === "root-encryption" ? "encrypted" : "enabled") + "\tSecurity");
         return lines.concat(["state\tfilesystem-summary\tavailable\t1\tMounts",
             "filesystem\t42\tavailable\t/dev/test\t/\text4\t18446744073709551615\t2\t3\tBytes",
             "action\thealth-open\tavailable\tuser-session\tdiagnostics\tHealth\tNavigation only"]);
@@ -117,9 +117,9 @@ ShellRoot {
             root.malformedOwner(root.replaceRow(root.informationSnapshot(), "state\tmemory-total-bytes\t",
                 "state\tmemory-total-bytes\tavailable\t" + value + "\tBad integer"), "information", "Invalid uint64 " + value);
         for (const status of ["partial", "restricted", "unavailable", "unsupported"]) {
-            root.parse(root.replaceRow(root.informationSnapshot(), "state\tselinux\t", "state\tselinux\t" + status + "\tunknown\tNot known"));
-            root.check(model.nativeStates.selinux.status === status, "Unknown security status stays distinct");
-            root.malformedOwner(root.replaceRow(root.informationSnapshot(), "state\tselinux\t", "state\tselinux\t" + status + "\tdisabled\tUnproven"), "security", "Unavailable cannot mean disabled");
+            root.parse(root.replaceRow(root.informationSnapshot(), "state\tapparmor\t", "state\tapparmor\t" + status + "\tunknown\tNot known"));
+            root.check(model.nativeStates.apparmor.status === status, "Unknown security status stays distinct");
+            root.malformedOwner(root.replaceRow(root.informationSnapshot(), "state\tapparmor\t", "state\tapparmor\t" + status + "\tdisabled\tUnproven"), "security", "Unavailable cannot mean disabled");
         }
         root.malformedOwner(root.replaceRow(root.informationSnapshot(), "provider\tsecurity\t",
             "provider\tsecurity\tavailable\tprivileged\tFixture\tWrong class"), "security", "Security class is fixed");
@@ -144,7 +144,7 @@ ShellRoot {
         root.check(!model.operation.streamOwned, "Health never originates an operation");
         model.settingsVisible = false;
         root.parse(root.snapshot());
-        root.check(model.filesystems.length === 0 && !model.nativeStates.selinux, "Older minor clears information projections");
+        root.check(model.filesystems.length === 0 && !model.nativeStates.apparmor, "Older minor clears information projections");
     }
 
     function run() {

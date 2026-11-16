@@ -128,8 +128,8 @@ def snapshot():
                         row("state", identifier, "available", "Fixture", "Text")
                     for identifier in ("logical-cpus", "memory-total-bytes", "memory-available-bytes", "swap-total-bytes", "swap-free-bytes", "uptime-seconds"):
                         row("state", identifier, "available", "1", "Counter")
-                    for identifier in ("selinux", "secure-boot", "firewalld", "root-encryption", "screen-lock"):
-                        row("state", identifier, "available", "enforcing" if identifier == "selinux" else "encrypted" if identifier == "root-encryption" else "enabled", "Security")
+                    for identifier in ("apparmor", "secure-boot", "firewall", "root-encryption", "screen-lock"):
+                        row("state", identifier, "available", "encrypted" if identifier == "root-encryption" else "enabled", "Security")
                     if SNAPSHOT_MODE == "snapshot-without-storage":
                         row("state", "filesystem-summary", "partial", "unknown", "Unmonitored storage")
                     else:

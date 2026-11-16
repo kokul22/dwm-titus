@@ -101,7 +101,7 @@ Scope {
         if (identifier === "accounts-count") return accountDiscoveryModel;
         if (identifier === "cups-service") return printerDiscoveryModel;
         if (identifier === "filesystem-summary") return storageDiscoveryModel;
-        if (identifier === "firewalld") return securityDiscoveryModel;
+        if (identifier === "firewall") return securityDiscoveryModel;
         return null;
     }
 

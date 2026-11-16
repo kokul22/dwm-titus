@@ -608,7 +608,7 @@ scan_package_database() {
 		fi
 		;;
 	*)
-		emit_check dependencies info package-database "Package database" "A Debian based distribution is required for package validation" "$id"
+		emit_check dependencies info package-database "Package database" "A Debian-family distribution is required for APT validation" "$id"
 		return
 		;;
 	esac

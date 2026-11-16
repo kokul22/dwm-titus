@@ -20,7 +20,7 @@ bus = Gio.bus_get_sync(Gio.BusType.SESSION, None)
 context = GLib.MainContext.default()
 environment = dict(os.environ, DBUS_SYSTEM_BUS_ADDRESS=os.environ["DBUS_SESSION_BUS_ADDRESS"])
 paths = {"cups.service": PATH + "/unit/CanonicalPrinter", "cups.socket": PATH + "/unit/SocketAlias",
-         "firewalld.service": PATH + "/unit/FirewallAlias"}
+         "ufw.service": PATH + "/unit/UfwAlias", "nftables.service": PATH + "/unit/NftablesAlias"}
 calls, processes, held = [], [], []
 subscribers = set()
 mode = "normal"
@@ -97,7 +97,7 @@ def called(_connection, sender, _path, _interface, method, args, invocation):
     else:
         assert method == "GetUnit" and sender in subscribers
         name = args.unpack()[0]
-        assert name in ("cups.service", "cups.socket", "firewalld.service")
+        assert name in ("cups.service", "cups.socket", "ufw.service", "nftables.service")
         if mode == "burst":
             emit("UnitNew", "(so)", ("unrelated.service", PATH + "/unit/Unrelated"))
         if mode == "malformed":
@@ -142,7 +142,8 @@ try:
         "RequestName", GLib.Variant("(su)", (NAME, 0)), GLib.VariantType.new("(u)"), Gio.DBusCallFlags.NONE, 3000, None)
     assert reply.unpack() == (1,)
     process = launch()
-    assert line(process) == b"units-event\tready\n"
+    ready_line = line(process)
+    assert ready_line == b"units-event\tready\n", (ready_line, process.poll(), process.stderr.read() if process.poll() is not None else b"")
     assert [call[1] for call in calls] == ["Subscribe", "GetUnit", "GetUnit"], calls
     first_sender = calls[0][0]
     assert first_sender != bus.get_unique_name()
@@ -169,12 +170,13 @@ try:
     assert line(process, 0.1) == b""
     # Another monitor's subscription survives the first private connection.
     second = launch("security")
-    assert line(second) == b"units-event\tready\n"
+    second_ready = line(second)
+    assert second_ready == b"units-event\tready\n", (second_ready, second.poll(), second.stderr.read() if second.poll() is not None else b"")
     second_sender = next(sender for sender in subscribers if sender != first_sender)
     stop(process)
     wait_for(lambda: first_sender not in subscribers)
     assert second_sender in subscribers
-    property_event(paths["firewalld.service"])
+    property_event(paths["ufw.service"])
     assert line(second) == b"units-event\tchanged\n"
     stop(second, signal.SIGKILL, -signal.SIGKILL)
     wait_for(lambda: not subscribers)

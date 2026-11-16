@@ -19,7 +19,7 @@ change itself.
    `dwm-diagnostics` and `dwm-system-health scan-user`.
 3. Classify the layer: dwm config (TOML, `config.h`), Quickshell panel,
    session startup (autostart, user units, portals), X11 or display, a single
-   application, or the host. Route package, SELinux, firewall, and system
+   application, or the host. Route package, AppArmor, firewall, and system
    unit failures to `$linux-sysadmin`, and QML errors to `$quickshell` when
    available; otherwise consult installed helper source and the checkout's
    `AGENTS.md`.
@@ -75,7 +75,7 @@ config files.
   preview-status`, and `dwm-desktop-update check`.
 - Do not send synthetic keys or text (`xdotool type`, `xdotool key`) to the
   live session; they can fire MODKEY bindings.
-- Never disable SELinux, the polkit agent, or the screen locker as a fix.
+- Never disable AppArmor, the polkit agent, or the screen locker as a fix.
 - Prefer user-level overrides and drop-ins over editing packaged files.
 - Delete any core dump you extract once you are done with it; it can hold
   secrets.

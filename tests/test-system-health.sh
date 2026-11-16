@@ -157,6 +157,15 @@ for audit_timeout in '' 0 -1 invalid 1.5 ' 7 ' 7; do
 	grep -Fq $'check\tdependencies\tok\tpackage-database' "$work/audit.tsv"
 done
 
+# A non-Debian identity must never probe another package manager.
+printf 'ID=fedora\nVERSION_ID=43\nPRETTY_NAME="Fedora Test"\n' >"$work/fedora-os-release"
+: >"$work/audit.log"
+HOME="$work/home" DWM_HEALTH_OS_RELEASE="$work/fedora-os-release" \
+	DWM_AUDIT_LOG="$work/audit.log" DWM_HEALTH_COMMAND_TIMEOUT=2 \
+	PATH="$work/bin:/usr/bin:/bin" "$HELPER" scan-user >"$work/non-debian.tsv"
+grep -Fq $'check\tdependencies\tinfo\tpackage-database\tPackage database\tA Debian-family distribution is required for APT validation\tfedora' "$work/non-debian.tsv"
+[[ ! -s $work/audit.log ]]
+
 # A missing timeout utility must skip APT instead of running it unbounded.
 cat >"$work/no-timeout-env" <<'SCRIPT'
 command() {

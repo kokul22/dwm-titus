@@ -41,7 +41,7 @@ Scope {
         if (value === "locale") return { action: "watch-regional", args: ["locale"], prefix: "regional-event", label: "locale" };
         if (value === "accounts") return { action: "watch-accounts", args: [], prefix: "accounts-event", label: "account" };
         if (value === "printers") return { action: "watch-units", args: ["printers"], prefix: "units-event", label: "printer" };
-        if (value === "security") return { action: "watch-units", args: ["security"], prefix: "units-event", label: "firewalld" };
+        if (value === "security") return { action: "watch-units", args: ["security"], prefix: "units-event", label: "firewall" };
         if (value === "storage") return { action: "watch-mounts", args: [], prefix: "mount-change", label: "storage" };
         return null;
     }

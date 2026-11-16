@@ -71,8 +71,7 @@
   custom image outside `/usr/share/pixmaps/dwm-titus.jpg`. `install.sh` runs
   `make -C lightdm install`, which overwrites `slick-greeter.conf` and that
   image without a backup; tell the user that edits must be re-applied after a
-  reinstall. Restore SELinux labels with `restorecon` on changed
-  files. The change shows at the next greeter start.
+  reinstall. The change shows at the next greeter start.
 - Logs in `/var/log/lightdm/` are root-only.
 
 ## Screenshots
